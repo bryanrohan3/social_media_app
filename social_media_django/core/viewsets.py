@@ -7,7 +7,7 @@ from rest_framework import viewsets, mixins, status
 from django.contrib.auth import authenticate 
 from rest_framework.decorators import action
 # Import Serializer and Models
-from .serializers import UserSerializer, UserLoginSerializer, PostSerializer, LikeSerializer, CommentSerializer, FriendRequestSerializer, BlockSerializer
+from .serializers import UserSerializer, UserLoginSerializer, PostSerializer, LikeSerializer, CommentSerializer, FriendRequestSerializer, BlockSerializer, ShortCommentSerializer
 from .models import Post, Like, Comment, FriendRequest, Block
 from django.db.models import Q  # Import the Q object
 from .helpers import get_user_friends  # Import the helper function
@@ -287,6 +287,8 @@ class CommentViewSet(
         'create': CommentSerializer,
         'update': CommentSerializer,
         'partial_update': CommentSerializer,
+        'retrieve': CommentSerializer,
+        'short_list': ShortCommentSerializer
     }
     def get_serializer_class(self):
         return self.serializer_classes.get(
@@ -319,20 +321,36 @@ class CommentViewSet(
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    # def list(self, request, *args, **kwargs):
+    #     # This is the same as likes, move it to post view set detail
+    #     post_id = request.query_params.get('post_id')  # Retrieve the post ID from the query parameters
+
+    #     if post_id is None:
+    #         return super().list(request, *args, **kwargs)
+
+    #     comments = self.get_queryset().filter(post_id=post_id)  # Retrieve all comments associated with the specified post ID
+    #     comments = filter_blocked_objects(comments, self.request.user)  # Apply the filtering logic to exclude blocked users' comments
+
+    #     serializer = self.get_serializer(comments, many=True)  # Serialize the comments
+
+    #     return Response(serializer.data)
+
     def list(self, request, *args, **kwargs):
-        # This is the same as likes, move it to post view set detail
-        post_id = request.query_params.get('post_id')  # Retrieve the post ID from the query parameters
+        post_id = request.query_params.get('post_id')
+        latest = request.query_params.get('latest')  # Add this line
 
         if post_id is None:
             return super().list(request, *args, **kwargs)
 
-        comments = self.get_queryset().filter(post_id=post_id)  # Retrieve all comments associated with the specified post ID
-        comments = filter_blocked_objects(comments, self.request.user)  # Apply the filtering logic to exclude blocked users' comments
+        comments = self.get_queryset().filter(post_id=post_id)
+        comments = filter_blocked_objects(comments, self.request.user)
 
-        serializer = self.get_serializer(comments, many=True)  # Serialize the comments
+        if latest:  # Add this block to handle the latest comment
+            comments = comments.order_by('-date_time_created')[:1]
+            self.action = 'short_list'  # Change action to use the short serializer
 
+        serializer = self.get_serializer(comments, many=True)
         return Response(serializer.data)
-
     def create(self, request, *args, **kwargs):
         # Ensure the user is not blocked or blocking the owner of the post they are commenting on
         post_id = request.data.get('post')
