@@ -327,7 +327,7 @@ class CommentViewSet(
             return super().list(request, *args, **kwargs)
 
         comments = self.get_queryset().filter(post_id=post_id)  # Retrieve all comments associated with the specified post ID
-        comments = filter_blocked_objects(comments)  # Apply the filtering logic to exclude blocked users' comments
+        comments = filter_blocked_objects(comments, self.request.user)  # Apply the filtering logic to exclude blocked users' comments
 
         serializer = self.get_serializer(comments, many=True)  # Serialize the comments
 
