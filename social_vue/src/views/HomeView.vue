@@ -2,6 +2,7 @@
   <div>
     <NavBar />
     <div class="content">
+      <Post />
       <h1 v-if="userProfile && userProfile.first_name">
         Hello {{ userProfile.first_name }} Hello {{ userProfile.username }}
       </h1>
@@ -13,10 +14,12 @@
 <script>
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
+import Post from "@/components/Post.vue";
 
 export default {
   components: {
     NavBar,
+    Post,
   },
   computed: {
     ...mapGetters(["getUserProfile"]),
