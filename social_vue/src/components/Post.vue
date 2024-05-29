@@ -50,9 +50,7 @@
           <button class="viewMoreComments" @click="viewMoreComments(post)">
             View more comments
           </button>
-          <!-- HTML -->
-          <!-- HTML -->
-          <!-- HTML -->
+
           <ul class="comments-list">
             <li
               v-for="comment in post.comments"
