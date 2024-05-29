@@ -321,20 +321,6 @@ class CommentViewSet(
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # def list(self, request, *args, **kwargs):
-    #     # This is the same as likes, move it to post view set detail
-    #     post_id = request.query_params.get('post_id')  # Retrieve the post ID from the query parameters
-
-    #     if post_id is None:
-    #         return super().list(request, *args, **kwargs)
-
-    #     comments = self.get_queryset().filter(post_id=post_id)  # Retrieve all comments associated with the specified post ID
-    #     comments = filter_blocked_objects(comments, self.request.user)  # Apply the filtering logic to exclude blocked users' comments
-
-    #     serializer = self.get_serializer(comments, many=True)  # Serialize the comments
-
-    #     return Response(serializer.data)
-
     def list(self, request, *args, **kwargs):
         post_id = request.query_params.get('post_id')
         latest = request.query_params.get('latest')  # Add this line
