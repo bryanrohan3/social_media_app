@@ -108,7 +108,6 @@
 <script>
 // import axios from "axios";
 import CommentModal from "./CommentModal.vue";
-import axiosInstance from "@/api/axiosHelper";
 import { mapGetters } from "vuex";
 
 export default {
@@ -118,106 +117,32 @@ export default {
   computed: {
     ...mapGetters(["getAuthToken"]),
   },
+  props: {
+    posts: {
+      type: Array,
+      required: true,
+    },
+    postComment: {
+      type: Function,
+      required: true,
+    },
+    viewMoreComments: {
+      type: Function,
+      required: true,
+    },
+  },
   data() {
     return {
-      posts: [],
+      postsData: [],
       isModalOpen: false,
       selectedPost: null,
     };
   },
-  mounted() {
-    this.fetchPosts();
-  },
   methods: {
-    async fetchPosts() {
-      try {
-        const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/posts/friends_posts/"
-        );
-
-        const posts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axiosInstance.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
-            );
-            post.comments = commentsResponse.data; // Assign fetched comments to the post
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = []; // Default to an empty array on error
-          }
-          return post;
-        });
-
-        this.posts = await Promise.all(posts); // Wait for all comments to be fetched
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      }
-    },
-
-    async likePost(postId) {
-      try {
-        await axiosInstance.post(
-          `http://127.0.0.1:8000/api/likes/?post=${postId}`, // Include postId in the URL
-          {} // No need for a request body
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error liking post:", error);
-      }
-    },
-
-    async unlikePost(postId) {
-      try {
-        await axiosInstance.delete(
-          `http://127.0.0.1:8000/api/unlike/?like=${postId}`
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error unliking post:", error);
-      }
-    },
-
-    async postComment(postId, commentText) {
-      try {
-        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
-          post: postId,
-          text: commentText,
-        });
-        // Clear the comment text area after posting
-        this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error posting comment:", error);
-      }
-    },
-
-    async toggleLike(post) {
-      try {
-        console.log("toggleLike method called");
-        // Determine whether to like or unlike the post based on its current state
-        if (post.liked) {
-          // If the post is already liked, unlike it
-          await this.unlikePost(post.id);
-        } else {
-          // If the post is not liked, like it
-          await this.likePost(post.id);
-        }
-      } catch (error) {
-        console.error("Error toggling like:", error);
-      }
-    },
-
     viewMoreComments(post) {
       this.selectedPost = post;
       this.isModalOpen = true;
     },
-
     formatDate(date) {
       const options = {
         month: "long",
