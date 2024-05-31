@@ -20,7 +20,7 @@
           height="24px"
           viewBox="0 -960 960 960"
           width="24px"
-          :fill="post.liked ? 'black' : '#e8eaed'"
+          :fill="post.liked ? 'black' : 'gray'"
         >
           <path
             d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L794-168q-9 20-30 34t-44 14Zm-360-80h360l120-280v-80H480l54-220-174 174v406Zm0-406v406-406Zm-80-34v80H160v360h120v80H80v-520h200Z"
@@ -34,7 +34,7 @@
           height="24px"
           viewBox="0 -960 960 960"
           width="24px"
-          fill="#e8eaed"
+          fill="gray"
         >
           <path
             d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"
@@ -88,7 +88,7 @@
             height="24px"
             viewBox="0 -960 960 960"
             width="24px"
-            fill="#e8eaed"
+            fill="gray"
           >
             <path
               d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"
@@ -123,10 +123,6 @@ export default {
       required: true,
     },
     postComment: {
-      type: Function,
-      required: true,
-    },
-    viewMoreComments: {
       type: Function,
       required: true,
     },
@@ -281,7 +277,7 @@ textarea:active {
 }
 
 .send-icon {
-  fill: #e8eaed;
+  fill: gray;
   width: 24px;
   height: 24px;
   cursor: pointer;
