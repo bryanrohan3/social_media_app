@@ -106,12 +106,17 @@
 </template>
 
 <script>
-import axios from "axios";
+// import axios from "axios";
 import CommentModal from "./CommentModal.vue";
+import axiosInstance from "@/api/axiosHelper";
+import { mapGetters } from "vuex";
 
 export default {
   components: {
     CommentModal,
+  },
+  computed: {
+    ...mapGetters(["getAuthToken"]),
   },
   data() {
     return {
@@ -126,23 +131,14 @@ export default {
   methods: {
     async fetchPosts() {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-
-        const response = await axios.get(
-          "http://127.0.0.1:8000/api/posts/friends_posts/",
-          config
+        const response = await axiosInstance.get(
+          "http://127.0.0.1:8000/api/posts/friends_posts/"
         );
 
         const posts = response.data.map(async (post) => {
           try {
-            const commentsResponse = await axios.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`,
-              config
+            const commentsResponse = await axiosInstance.get(
+              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
             );
             post.comments = commentsResponse.data; // Assign fetched comments to the post
           } catch (error) {
@@ -163,16 +159,9 @@ export default {
 
     async likePost(postId) {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.post(
+        await axiosInstance.post(
           `http://127.0.0.1:8000/api/likes/?post=${postId}`, // Include postId in the URL
-          {}, // No need for a request body
-          config
+          {} // No need for a request body
         );
         // Update the posts to reflect the change in likes
         this.fetchPosts();
@@ -183,15 +172,8 @@ export default {
 
     async unlikePost(postId) {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.delete(
-          `http://127.0.0.1:8000/api/unlike/?like=${postId}`,
-          config
+        await axiosInstance.delete(
+          `http://127.0.0.1:8000/api/unlike/?like=${postId}`
         );
         // Update the posts to reflect the change in likes
         this.fetchPosts();
@@ -202,20 +184,10 @@ export default {
 
     async postComment(postId, commentText) {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.post(
-          "http://127.0.0.1:8000/api/comments/",
-          {
-            post: postId,
-            text: commentText,
-          },
-          config
-        );
+        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+          post: postId,
+          text: commentText,
+        });
         // Clear the comment text area after posting
         this.commentText = "";
         // Update the posts to reflect the new comment
