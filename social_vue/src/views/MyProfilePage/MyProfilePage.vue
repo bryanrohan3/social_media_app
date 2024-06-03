@@ -27,16 +27,21 @@
 
         <!-- Display user's posts using the Post component -->
       </div>
-      <Post :posts="userPosts" class="post-content" />
+      <Post
+        :posts="userPosts"
+        :post-comment="postComment"
+        class="post-content"
+      />
     </div>
   </div>
 </template>
 
 <script>
-import axios from "axios";
+// import axios from "axios";
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
+import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
@@ -47,6 +52,7 @@ export default {
     return {
       user: null,
       userPosts: [],
+      commentText: "", // Add commentText data property
     };
   },
   computed: {
@@ -59,15 +65,8 @@ export default {
   methods: {
     async fetchCurrentUser() {
       try {
-        const token = this.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        const response = await axios.get(
-          "http://127.0.0.1:8000/api/users/current/",
-          config
+        const response = await axiosInstance.get(
+          "http://127.0.0.1:8000/api/users/current/"
         );
         this.user = response.data;
       } catch (error) {
@@ -76,19 +75,42 @@ export default {
     },
     async fetchUserPosts() {
       try {
-        const token = this.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        const response = await axios.get(
-          "http://127.0.0.1:8000/api/posts/my_posts/",
-          config
+        const response = await axiosInstance.get(
+          "http://127.0.0.1:8000/api/posts/my_posts/"
         );
-        this.userPosts = response.data;
+        const userPosts = response.data.map(async (post) => {
+          try {
+            const commentsResponse = await axiosInstance.get(
+              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
+            );
+            post.comments = commentsResponse.data;
+          } catch (error) {
+            console.error(
+              `Error fetching comments for post ${post.id}:`,
+              error
+            );
+            post.comments = [];
+          }
+          return post;
+        });
+
+        this.userPosts = await Promise.all(userPosts);
       } catch (error) {
         console.error("Error fetching user's posts:", error);
+      }
+    },
+    async postComment(postId, commentText) {
+      try {
+        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+          post: postId,
+          text: commentText,
+        });
+        // Clear the comment text area after posting
+        this.commentText = "";
+        // Update the posts to reflect the new comment
+        this.fetchUserPosts();
+      } catch (error) {
+        console.error("Error posting comment:", error);
       }
     },
 
@@ -120,7 +142,6 @@ export default {
 }
 
 .content {
-  /* Remove overflow-y: auto; */
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
@@ -191,17 +212,6 @@ export default {
 .edit-profile-button:hover {
   background-color: #1e1e1e;
   text-shadow: #363636 1px 0 10px;
-}
-
-@media screen and (max-width: 768px) {
-  .line-divider {
-    display: none; /* Hide the line divider on smaller screens */
-  }
-}
-
-/* user posts */
-.user-posts {
-  margin-top: 20px;
 }
 
 .post {

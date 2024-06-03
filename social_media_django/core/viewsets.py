@@ -217,6 +217,11 @@ class PostViewSet(
         likes = filter_blocked_objects(likes, self.request.user)
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
 
 class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin):
@@ -224,7 +229,6 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
     serializer_class = LikeSerializer
 
     def filter_queryset(self, queryset):
-        # Override the default filter_queryset method to filter out likes from blocked users.
         queryset = super().filter_queryset(queryset)
         queryset = filter_blocked_objects(queryset, self.request.user)
         return queryset
@@ -237,29 +241,27 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
         post = get_object_or_404(Post, id=post_id)
         post_owner = post.user
 
-        # TODO: You could do this in the serializer validate function
-        # filter_blocked_objects can be used here as well to block these guys out
-        # Check if the user is blocked or is blocking the owner of the post they want to like (this shouldnt be needed since they shoudlnt see the post )
         if Block.objects.filter(blocker=request.user, blocked=post_owner).exists() or Block.objects.filter(blocker=post_owner, blocked=request.user).exists():
             return Response({'error': 'You cannot like this post'}, status=status.HTTP_400_BAD_REQUEST)
 
         like, created = Like.objects.get_or_create(post=post, user=request.user)
-        print("Like object:", like)  # Debug statement
-        print("Created:", created)   # Debug statement
 
         if not created:
             return Response({'error': 'You have already liked this post'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'message': 'Post liked successfully'}, status=status.HTTP_201_CREATED)
+        serializer = self.get_serializer(like)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def unlike(self, request, *args, **kwargs):
         like_id = request.query_params.get('like')
+        print("Received like_id:", like_id)  # Add this line
         if not like_id:
             return Response({'error': 'like parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             like = Like.objects.get(id=like_id, user=request.user)
         except Like.DoesNotExist:
+            print("Like not found")  # Add this line
             return Response({'error': 'You have not liked this post'}, status=status.HTTP_400_BAD_REQUEST)
 
         like.delete()

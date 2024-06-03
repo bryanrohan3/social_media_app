@@ -20,7 +20,7 @@
           height="24px"
           viewBox="0 -960 960 960"
           width="24px"
-          :fill="post.liked ? 'black' : 'gray'"
+          :fill="post.liked ? 'orange' : 'gray'"
         >
           <path
             d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L794-168q-9 20-30 34t-44 14Zm-360-80h360l120-280v-80H480l54-220-174 174v406Zm0-406v406-406Zm-80-34v80H160v360h120v80H80v-520h200Z"
@@ -78,6 +78,7 @@
             v-model="post.commentText"
             class="comment-input"
             placeholder="Write a comment..."
+            :id="'comment-input-' + post.id"
           ></textarea>
           <!-- SVG icon for sending comment -->
           <svg
@@ -109,6 +110,7 @@
 // import axios from "axios";
 import CommentModal from "./CommentModal.vue";
 import { mapGetters } from "vuex";
+import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
@@ -139,6 +141,24 @@ export default {
       this.selectedPost = post;
       this.isModalOpen = true;
     },
+    openComment(post) {
+      // Set the selected post
+      this.selectedPost = post;
+      // Get the comment input field of the specific post
+      const commentInput = document.getElementById(`comment-input-${post.id}`);
+      if (commentInput) {
+        // Calculate the position of the comment input field relative to the viewport
+        const rect = commentInput.getBoundingClientRect();
+        // Scroll to the comment input field, keeping the post in view
+        window.scrollTo({
+          top: window.pageYOffset + rect.top - 200, // Adjust the offset as needed
+          behavior: "smooth",
+        });
+        // Focus on the comment input field
+        commentInput.focus();
+      }
+    },
+
     formatDate(date) {
       const options = {
         month: "long",
@@ -176,6 +196,42 @@ export default {
             hour12: true,
           })
         );
+      }
+    },
+    async toggleLike(post) {
+      console.log("Toggling like for post:", post);
+      if (post.liked) {
+        // Unlike the post
+        try {
+          if (post.like_id) {
+            console.log("Unliking post with like_id:", post.like_id);
+            await axiosInstance.delete(
+              `http://127.0.0.1:8000/api/unlike/?like=${post.like_id}`
+            );
+            post.liked = false;
+            post.like_id = null;
+          } else {
+            console.error("Like ID is missing");
+          }
+        } catch (error) {
+          console.error("Error unliking the post:", error);
+        }
+      } else {
+        // Like the post
+        try {
+          console.log("Liking post:", post.id);
+          const response = await axiosInstance.post(
+            "http://127.0.0.1:8000/api/likes/",
+            {
+              post: post.id,
+            }
+          );
+          console.log("Post liked successfully:", response.data);
+          post.liked = true;
+          post.like_id = response.data.id; // Ensure this matches the backend response structure
+        } catch (error) {
+          console.error("Error liking the post:", error);
+        }
       }
     },
   },
@@ -253,6 +309,33 @@ textarea:active {
 .comment-icon:hover {
   fill: lightgrey;
   cursor: pointer;
+  transform: scale(1.1) rotate(-45deg); /* Rotate 45 degrees when clicked */
+}
+
+.like-icon,
+.comment-icon {
+  transition: transform 0.2s ease-in-out; /* Add a transition for the transform property */
+  cursor: pointer;
+}
+.like-icon,
+.comment-icon {
+  transition: transform 0.2s ease-in-out; /* Add a transition for the transform property */
+  cursor: pointer;
+}
+
+.like-icon:hover,
+.comment-icon:hover,
+.like-icon.clicked,
+.comment-icon.clicked {
+  fill: lightgrey;
+  cursor: pointer;
+  transform: scale(1.1); /* Scale the icon slightly when hovered or clicked */
+  transform: scale(1.1) rotate(-35deg); /* Rotate 45 degrees when clicked */
+}
+
+.like-icon.clicked,
+.comment-icon.clicked {
+  transform: scale(1.1) rotate(45deg); /* Rotate 45 degrees when clicked */
 }
 
 .comment-section {

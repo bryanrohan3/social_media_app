@@ -35,15 +35,28 @@ class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
 
-
 class PostSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.id')
     username = serializers.CharField(source='user.username', read_only=True)
+    liked = serializers.SerializerMethodField()
+    like_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'caption', 'date_time_created', 'username', 'user', 'is_active']
+        fields = ['id', 'caption', 'date_time_created', 'username', 'user', 'is_active', 'liked', 'like_id']
 
+    def get_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Like.objects.filter(post=obj, user=request.user).exists()
+        return False
+
+    def get_like_id(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            like = Like.objects.filter(post=obj, user=request.user).first()
+            return like.id if like else None
+        return None
 
 class LikeSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
