@@ -138,12 +138,9 @@ export default {
 
 <style>
 .content {
-  flex: 1;
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
-  padding: 2rem;
-  margin-left: 200px; /* Make space for fixed navbar */
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto; /* Center the content */
 }
 
 .user-info-top-right {

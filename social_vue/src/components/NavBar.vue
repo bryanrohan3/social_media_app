@@ -205,8 +205,15 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
-  margin-bottom: 40px; /* Increased spacing between items */
   cursor: pointer;
+  padding: 10px 10px 10px 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  color: #333;
+}
+
+.nav-item:hover {
+  background-color: #f1f1f1;
 }
 
 .nav-item svg {
@@ -353,5 +360,10 @@ button {
 
 .login-button {
   margin-top: auto;
+}
+
+button:hover {
+  background-color: #363636; /* Set darker background color on hover */
+  /* add pop up animation */
 }
 </style>
