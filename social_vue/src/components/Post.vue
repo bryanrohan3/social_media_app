@@ -330,7 +330,7 @@ textarea:active {
   fill: lightgrey;
   cursor: pointer;
   transform: scale(1.1); /* Scale the icon slightly when hovered or clicked */
-  transform: scale(1.1) rotate(-35deg); /* Rotate 45 degrees when clicked */
+  transform: scale(1.1) rotate(-15deg); /* Rotate 45 degrees when clicked */
 }
 
 .like-icon.clicked,
@@ -343,7 +343,6 @@ textarea:active {
 }
 
 .comment-input-wrapper {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;

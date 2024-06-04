@@ -20,24 +20,82 @@
               </button>
             </div>
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
-            <!-- <p class="email">{{ user.email }}</p> -->
-            <p class="email">Friends · 12</p>
+            <!-- Display number of friends -->
+            <p class="email">Friends · {{ friendsCount }}</p>
           </div>
         </div>
 
-        <!-- Display user's posts using the Post component -->
+        <!-- Tabs for posts and friends -->
+        <div class="tabs">
+          <button
+            :class="{ active: activeTab === 'posts' }"
+            @click="activeTab = 'posts'"
+          >
+            Posts
+          </button>
+          <button
+            :class="{ active: activeTab === 'friends' }"
+            @click="
+              activeTab = 'friends';
+              fetchFriends();
+            "
+          >
+            Friends
+          </button>
+        </div>
+
+        <!-- Content based on active tab -->
+        <div v-if="activeTab === 'posts'">
+          <Post
+            :posts="userPosts"
+            :post-comment="postComment"
+            class="post-content"
+          />
+        </div>
+        <div v-if="activeTab === 'friends'" class="tab-content">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search by username"
+            class="search-input"
+          />
+          <div
+            v-for="friend in filteredFriends"
+            :key="friend.id"
+            class="friend-item"
+          >
+            <img
+              :src="friend.avatar || 'https://via.placeholder.com/50'"
+              alt="Friend Avatar"
+              class="friend-avatar"
+            />
+            <div class="friend-info">
+              <p class="friend-username">{{ friend.username }}</p>
+              <p class="friend-name">
+                {{ friend.first_name }} {{ friend.last_name }}
+              </p>
+            </div>
+            <button @click="unfriend(friend.id)" class="unfriend-button">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="#c70000"
+              >
+                <path
+                  d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
-      <Post
-        :posts="userPosts"
-        :post-comment="postComment"
-        class="post-content"
-      />
     </div>
   </div>
 </template>
 
 <script>
-// import axios from "axios";
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
@@ -52,15 +110,24 @@ export default {
     return {
       user: null,
       userPosts: [],
-      commentText: "", // Add commentText data property
+      friends: [],
+      searchQuery: "",
+      friendsCount: 0,
+      activeTab: "posts", // Set default tab to 'posts'
+      commentText: "",
     };
   },
   computed: {
     ...mapGetters(["getAuthToken"]),
+    filteredFriends() {
+      // Filter friends based on search query
+      return this.friends.filter((friend) =>
+        friend.username.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+    },
   },
   mounted() {
     this.fetchCurrentUser();
-    this.fetchUserPosts();
   },
   methods: {
     async fetchCurrentUser() {
@@ -69,6 +136,8 @@ export default {
           "http://127.0.0.1:8000/api/users/current/"
         );
         this.user = response.data;
+        this.fetchFriendsCount();
+        this.fetchUserPosts();
       } catch (error) {
         console.error("Error fetching current user data:", error);
       }
@@ -99,6 +168,40 @@ export default {
         console.error("Error fetching user's posts:", error);
       }
     },
+    async fetchFriendsCount() {
+      try {
+        const response = await axiosInstance.get(
+          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+        );
+        this.friendsCount = response.data.length;
+      } catch (error) {
+        console.error("Error fetching friends count:", error);
+      }
+    },
+    async unfriend(friendId) {
+      try {
+        const response = await axiosInstance.delete(
+          `http://127.0.0.1:8000/api/friend-requests/unfriend/${friendId}/`
+        );
+        // Assuming the API returns success if the unfriend action is successful
+        if (response.status === 200) {
+          // Update the friends list after unfriending
+          this.fetchFriends();
+        }
+      } catch (error) {
+        console.error("Error unfriending:", error);
+      }
+    },
+    async fetchFriends() {
+      try {
+        const response = await axiosInstance.get(
+          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+        );
+        this.friends = response.data;
+      } catch (error) {
+        console.error("Error fetching friends list:", error);
+      }
+    },
     async postComment(postId, commentText) {
       try {
         await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
@@ -113,7 +216,6 @@ export default {
         console.error("Error posting comment:", error);
       }
     },
-
     editProfile() {
       // Logic for editing the profile
     },
@@ -144,14 +246,15 @@ export default {
 .content {
   padding: 20px;
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto; /* Center the content */
 }
 
 .post-content {
   margin-top: 40px;
   display: flex;
+  margin: auto 0;
+  margin-top: 40px;
 }
-
 .profile-page {
   display: flex;
   flex-direction: column;
@@ -263,5 +366,111 @@ export default {
   color: #555;
   font-size: 0.8rem;
   margin-top: 10px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.tabs button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  cursor: pointer;
+  background-color: lightgrey;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.tabs button.active {
+  background-color: #1e1e1e;
+  color: white;
+}
+
+/* Friend list */
+
+.tab-content {
+  margin-top: 20px;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+
+  border-radius: 10px;
+  width: 100%;
+  max-width: 600px;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+  width: 500px;
+}
+
+.friend-item:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.unfriend-button {
+  margin-left: auto; /* Align the unfriend button to the right */
+  padding: 8px 18px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #fff; /* Red color for the unfriend button */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  width: 100px;
+}
+
+.unfriend-button:hover {
+  background-color: #f0f0f0; /* Darker red color on hover */
+  cursor: pointer;
+}
+
+.friend-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-right: 20px;
+  object-fit: cover;
+}
+
+.friend-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-username {
+  font-weight: bold;
+  margin: 0;
+  font-size: 1.1em;
+  align-items: start;
+}
+
+.friend-name {
+  margin: 0;
+  color: gray;
+  align-self: start;
+  font-size: 0.9em;
+}
+
+.search-input {
+  margin-bottom: 20px;
+  padding: 10px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
 }
 </style>

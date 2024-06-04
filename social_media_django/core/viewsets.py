@@ -19,7 +19,7 @@ from rest_framework.authtoken.models import Token
 def filter_blocked_objects(queryset, user):
     # Filter queryset to exclude objects blocked by the user.
     blocked_users = Block.objects.filter(blocker=user).values_list('blocked', flat=True)
-    return queryset.exclude(user_id__in=blocked_users)
+    return queryset.exclude(pk__in=blocked_users)
 
 
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
@@ -388,7 +388,7 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
                 User.objects
                 .filter(Q(sent_friend_requests__to_user=user, sent_friend_requests__status='accepted') | 
                         Q(received_friend_requests__from_user=user, received_friend_requests__status='accepted'))
-                .exclude(Q(blocks_by_user=user) | Q(blocks_to_user=user))
+                .exclude(pk__in=Block.objects.filter(blocker=user).values_list('blocked', flat=True))  # Exclude blocked users
             )
             return friends
 
@@ -396,7 +396,23 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             # Retrieve pending friend requests for the user
             return FriendRequest.objects.filter(to_user=user, status='pending')
 
-        return super().get_queryset()  # Call parent class method if action is not 'friends' or 'pending_requests'
+        return super().get_queryset()    # Call parent class method if action is not 'friends' or 'pending_requests'
+    
+    @action(detail=False, methods=['get'])
+    def friends_count(self, request, *args, **kwargs):
+        user_id = request.query_params.get('user_id', request.user.id)
+        user = get_object_or_404(User, pk=user_id)
+        
+        friends_count = (
+            User.objects
+            .filter(Q(sent_friend_requests__to_user=user, sent_friend_requests__status='accepted') | 
+                    Q(received_friend_requests__from_user=user, received_friend_requests__status='accepted'))
+            .exclude(pk__in=Block.objects.filter(blocker=user).values_list('blocked', flat=True))
+            .count()
+        )
+        
+        return Response({'friends_count': friends_count})
+
 
     def update(self, request, *args, **kwargs):
         # Updates the status of a friend request.
