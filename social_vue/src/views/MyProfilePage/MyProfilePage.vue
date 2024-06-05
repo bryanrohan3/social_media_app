@@ -6,11 +6,12 @@
         <!-- Profile header -->
         <div class="profile-header">
           <!-- Avatar -->
-          <img
-            :src="user.avatar || 'https://via.placeholder.com/150'"
+          <!-- <img
+            :src="user.avatar || '..//assets/avatar.jpeg'"
             alt="User Avatar"
             class="profile-avatar"
-          />
+          /> -->
+          <img class="profile-avatar" src="@/assets/avatar.jpeg" alt="Avatar" />
           <!-- Profile info -->
           <div class="profile-info">
             <div class="info-top">
@@ -65,9 +66,9 @@
             class="friend-item"
           >
             <img
-              :src="friend.avatar || 'https://via.placeholder.com/50'"
-              alt="Friend Avatar"
               class="friend-avatar"
+              src="@/assets/avatar.jpeg"
+              alt="Avatar"
             />
             <div class="friend-info">
               <p class="friend-username">{{ friend.username }}</p>
@@ -100,6 +101,7 @@ import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
 import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { avatar } from "@/assets/avatar.jpeg";
 
 export default {
   components: {
@@ -217,7 +219,7 @@ export default {
       }
     },
     editProfile() {
-      // Logic for editing the profile
+      this.$router.push("/myprofile/edit");
     },
     formatDate(dateString) {
       const date = new Date(dateString);

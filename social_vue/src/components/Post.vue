@@ -2,7 +2,7 @@
   <div class="post-container">
     <div v-for="post in posts" :key="post.id" class="post">
       <div class="post-header">
-        <img class="avatar" src="https://via.placeholder.com/50" alt="Avatar" />
+        <img class="avatar" src="../assets/avatar.jpeg" alt="Avatar" />
         <div class="user-info">
           <p class="username">{{ post.username }}</p>
           <p class="date">{{ formatDate(post.date_time_created) }}</p>
@@ -58,7 +58,7 @@
               class="comment-item"
             >
               <div class="comment-avatar">
-                <img src="https://via.placeholder.com/40" alt="Avatar" />
+                <img src="../assets/avatar.jpeg" alt="Avatar" />
               </div>
               <div class="comment-content">
                 <div class="comment-meta">
@@ -349,6 +349,7 @@ textarea:active {
 }
 
 .comment-input {
+  position: relative;
   width: 430px;
   border: 1px solid #eff2f5;
   border-radius: 15px;
