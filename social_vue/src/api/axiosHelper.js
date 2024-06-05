@@ -12,7 +12,7 @@ let tokenType = "Token";
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = store.getters.getAuthToken; // Get the token from your Vuex store
-    console.log("Auth Token:", token);
+    // console.log("Auth Token:", token);
 
     if (token) {
       config.headers["Authorization"] = `${tokenType} ${token}`; // Set the token in the Authorization header
