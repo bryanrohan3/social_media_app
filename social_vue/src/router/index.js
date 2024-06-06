@@ -28,6 +28,17 @@ const routes = [
     name: "myprofile",
     component: () => import("../views/MyProfilePage/MyProfilePage.vue"),
   },
+  {
+    path: "/profile/:id",
+    name: "profile",
+    component: () => import("../views/ProfilePage/ProfilePage.vue"),
+    props: true,
+  },
+  {
+    path: "/myprofile/edit",
+    name: "editprofile",
+    component: () => import("../views/EditProfilePage/EditProfilePage.vue"),
+  },
 ];
 
 const router = createRouter({

@@ -13,6 +13,9 @@ from django.db.models import Q  # Import the Q object
 from .helpers import get_user_friends  # Import the helper function
 from django.contrib.auth import login
 from rest_framework.authtoken.models import Token
+from django.http import Http404
+
+
 
 
 
@@ -69,7 +72,19 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
-
+    
+    
+    @action(detail=True, methods=['get'])
+    def info(self, request, pk=None):
+        try:
+            user = User.objects.get(pk=pk)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     def update(self, request, *args, **kwargs):
         instance = self.get_object() # Get the instance of the user to be updated
         serializer = self.get_serializer(instance, data=request.data, partial=True) # Initialize the serializer with the instance and request data
@@ -184,9 +199,15 @@ class PostViewSet(
 
         # Check if a username parameter is provided in the query parameters
         username = self.request.query_params.get('username')
+        user_id = self.request.query_params.get('user_id')
+
         if username:
             user = get_object_or_404(User, username=username)
             queryset = queryset.filter(user=user)
+        elif user_id:
+            user = get_object_or_404(User, pk=user_id)
+            queryset = queryset.filter(user=user)
+
         return queryset
 
     def perform_create(self, serializer):

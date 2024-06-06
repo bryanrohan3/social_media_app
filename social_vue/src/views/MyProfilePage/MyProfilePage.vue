@@ -6,11 +6,6 @@
         <!-- Profile header -->
         <div class="profile-header">
           <!-- Avatar -->
-          <!-- <img
-            :src="user.avatar || '..//assets/avatar.jpeg'"
-            alt="User Avatar"
-            class="profile-avatar"
-          /> -->
           <img class="profile-avatar" src="@/assets/avatar.jpeg" alt="Avatar" />
           <!-- Profile info -->
           <div class="profile-info">
@@ -21,7 +16,6 @@
               </button>
             </div>
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
-            <!-- Display number of friends -->
             <p class="email">Friends · {{ friendsCount }}</p>
           </div>
         </div>
@@ -64,6 +58,7 @@
             v-for="friend in filteredFriends"
             :key="friend.id"
             class="friend-item"
+            @click="goToFriendProfile(friend.id)"
           >
             <img
               class="friend-avatar"
@@ -76,7 +71,7 @@
                 {{ friend.first_name }} {{ friend.last_name }}
               </p>
             </div>
-            <button @click="unfriend(friend.id)" class="unfriend-button">
+            <button @click.stop="unfriend(friend.id)" class="unfriend-button">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 height="24px"
@@ -101,7 +96,6 @@ import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
 import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
-import { avatar } from "@/assets/avatar.jpeg";
 
 export default {
   components: {
@@ -221,6 +215,9 @@ export default {
     editProfile() {
       this.$router.push("/myprofile/edit");
     },
+    goToFriendProfile(friendId) {
+      this.$router.push({ name: "profile", params: { id: friendId } });
+    },
     formatDate(dateString) {
       const date = new Date(dateString);
 
@@ -228,15 +225,19 @@ export default {
       const month = date.toLocaleString("default", { month: "long" });
       const hour = date.getHours();
       const minute = date.getMinutes();
-      const period = hour >= 12 ? "PM" : "AM";
-      const formattedHour = hour > 12 ? hour - 12 : hour;
-      const formattedMinute = minute < 10 ? `0${minute}` : minute;
+      const ampm = hour >= 12 ? "PM" : "AM";
 
-      return `${day}th ${month} at ${formattedHour}:${formattedMinute}${period}`;
+      return `${day} ${month} at ${hour % 12}:${minute
+        .toString()
+        .padStart(2, "0")} ${ampm}`;
     },
   },
 };
 </script>
+
+<style scoped>
+/* Add styles here */
+</style>
 
 <style scoped>
 .wrapper {

@@ -343,7 +343,7 @@ textarea:active {
 }
 
 .comment-input-wrapper {
-  display: flex;
+  position: relative;
   align-items: center;
   gap: 10px;
 }
