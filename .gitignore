@@ -7,3 +7,6 @@ package-lock.json
 **/db.sqlite3
 
 **/__pycache__/*.pyc
+
+social_media_django/social_media_django/__pycache__/*.pyc
+

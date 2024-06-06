@@ -22,6 +22,23 @@ const routes = [
     name: "login",
     component: () => import("../views/LogInPage/LogInPage.vue"),
   },
+  // MyProfilePage
+  {
+    path: "/myprofile",
+    name: "myprofile",
+    component: () => import("../views/MyProfilePage/MyProfilePage.vue"),
+  },
+  {
+    path: "/profile/:id",
+    name: "profile",
+    component: () => import("../views/ProfilePage/ProfilePage.vue"),
+    props: true,
+  },
+  {
+    path: "/myprofile/edit",
+    name: "editprofile",
+    component: () => import("../views/EditProfilePage/EditProfilePage.vue"),
+  },
 ];
 
 const router = createRouter({

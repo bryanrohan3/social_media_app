@@ -12,7 +12,7 @@
             class="comment-item"
           >
             <div class="comment-avatar">
-              <img src="https://via.placeholder.com/40" alt="Avatar" />
+              <img src="@/assets/avatar.jpeg" alt="Avatar" />
             </div>
             <div class="comment-content">
               <div class="comment-meta">

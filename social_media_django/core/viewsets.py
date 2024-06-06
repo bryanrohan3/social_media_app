@@ -13,13 +13,16 @@ from django.db.models import Q  # Import the Q object
 from .helpers import get_user_friends  # Import the helper function
 from django.contrib.auth import login
 from rest_framework.authtoken.models import Token
+from django.http import Http404
+
+
 
 
 
 def filter_blocked_objects(queryset, user):
     # Filter queryset to exclude objects blocked by the user.
     blocked_users = Block.objects.filter(blocker=user).values_list('blocked', flat=True)
-    return queryset.exclude(user_id__in=blocked_users)
+    return queryset.exclude(pk__in=blocked_users)
 
 
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
@@ -69,7 +72,19 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
-
+    
+    
+    @action(detail=True, methods=['get'])
+    def info(self, request, pk=None):
+        try:
+            user = User.objects.get(pk=pk)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     def update(self, request, *args, **kwargs):
         instance = self.get_object() # Get the instance of the user to be updated
         serializer = self.get_serializer(instance, data=request.data, partial=True) # Initialize the serializer with the instance and request data
@@ -184,9 +199,15 @@ class PostViewSet(
 
         # Check if a username parameter is provided in the query parameters
         username = self.request.query_params.get('username')
+        user_id = self.request.query_params.get('user_id')
+
         if username:
             user = get_object_or_404(User, username=username)
             queryset = queryset.filter(user=user)
+        elif user_id:
+            user = get_object_or_404(User, pk=user_id)
+            queryset = queryset.filter(user=user)
+
         return queryset
 
     def perform_create(self, serializer):
@@ -217,6 +238,11 @@ class PostViewSet(
         likes = filter_blocked_objects(likes, self.request.user)
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
 
 class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin):
@@ -224,7 +250,6 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
     serializer_class = LikeSerializer
 
     def filter_queryset(self, queryset):
-        # Override the default filter_queryset method to filter out likes from blocked users.
         queryset = super().filter_queryset(queryset)
         queryset = filter_blocked_objects(queryset, self.request.user)
         return queryset
@@ -237,29 +262,27 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
         post = get_object_or_404(Post, id=post_id)
         post_owner = post.user
 
-        # TODO: You could do this in the serializer validate function
-        # filter_blocked_objects can be used here as well to block these guys out
-        # Check if the user is blocked or is blocking the owner of the post they want to like (this shouldnt be needed since they shoudlnt see the post )
         if Block.objects.filter(blocker=request.user, blocked=post_owner).exists() or Block.objects.filter(blocker=post_owner, blocked=request.user).exists():
             return Response({'error': 'You cannot like this post'}, status=status.HTTP_400_BAD_REQUEST)
 
         like, created = Like.objects.get_or_create(post=post, user=request.user)
-        print("Like object:", like)  # Debug statement
-        print("Created:", created)   # Debug statement
 
         if not created:
             return Response({'error': 'You have already liked this post'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'message': 'Post liked successfully'}, status=status.HTTP_201_CREATED)
+        serializer = self.get_serializer(like)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def unlike(self, request, *args, **kwargs):
         like_id = request.query_params.get('like')
+        print("Received like_id:", like_id)  # Add this line
         if not like_id:
             return Response({'error': 'like parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             like = Like.objects.get(id=like_id, user=request.user)
         except Like.DoesNotExist:
+            print("Like not found")  # Add this line
             return Response({'error': 'You have not liked this post'}, status=status.HTTP_400_BAD_REQUEST)
 
         like.delete()
@@ -386,7 +409,7 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
                 User.objects
                 .filter(Q(sent_friend_requests__to_user=user, sent_friend_requests__status='accepted') | 
                         Q(received_friend_requests__from_user=user, received_friend_requests__status='accepted'))
-                .exclude(Q(blocks_by_user=user) | Q(blocks_to_user=user))
+                .exclude(pk__in=Block.objects.filter(blocker=user).values_list('blocked', flat=True))  # Exclude blocked users
             )
             return friends
 
@@ -394,7 +417,23 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             # Retrieve pending friend requests for the user
             return FriendRequest.objects.filter(to_user=user, status='pending')
 
-        return super().get_queryset()  # Call parent class method if action is not 'friends' or 'pending_requests'
+        return super().get_queryset()    # Call parent class method if action is not 'friends' or 'pending_requests'
+    
+    @action(detail=False, methods=['get'])
+    def friends_count(self, request, *args, **kwargs):
+        user_id = request.query_params.get('user_id', request.user.id)
+        user = get_object_or_404(User, pk=user_id)
+        
+        friends_count = (
+            User.objects
+            .filter(Q(sent_friend_requests__to_user=user, sent_friend_requests__status='accepted') | 
+                    Q(received_friend_requests__from_user=user, received_friend_requests__status='accepted'))
+            .exclude(pk__in=Block.objects.filter(blocker=user).values_list('blocked', flat=True))
+            .count()
+        )
+        
+        return Response({'friends_count': friends_count})
+
 
     def update(self, request, *args, **kwargs):
         # Updates the status of a friend request.

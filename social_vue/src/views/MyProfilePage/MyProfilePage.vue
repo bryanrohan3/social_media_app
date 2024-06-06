@@ -11,6 +11,9 @@
           <div class="profile-info">
             <div class="info-top">
               <h1 class="username">{{ user.username }}</h1>
+              <button @click="editProfile" class="edit-profile-button">
+                Edit Profile
+              </button>
             </div>
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
             <p class="email">Friends · {{ friendsCount }}</p>
@@ -27,7 +30,10 @@
           </button>
           <button
             :class="{ active: activeTab === 'friends' }"
-            @click="activeTab = 'friends'"
+            @click="
+              activeTab = 'friends';
+              fetchFriends();
+            "
           >
             Friends
           </button>
@@ -65,6 +71,19 @@
                 {{ friend.first_name }} {{ friend.last_name }}
               </p>
             </div>
+            <button @click.stop="unfriend(friend.id)" class="unfriend-button">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="#c70000"
+              >
+                <path
+                  d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -91,6 +110,7 @@ export default {
       searchQuery: "",
       friendsCount: 0,
       activeTab: "posts", // Set default tab to 'posts'
+      commentText: "",
     };
   },
   computed: {
@@ -102,42 +122,26 @@ export default {
       );
     },
   },
-  watch: {
-    "$route.params.id": {
-      handler() {
-        this.fetchUserProfile();
-      },
-      immediate: true,
-    },
-    activeTab: {
-      handler(newTab) {
-        if (newTab === "friends") {
-          this.fetchFriends();
-        }
-      },
-      immediate: true,
-    },
+  mounted() {
+    this.fetchCurrentUser();
   },
   methods: {
-    async fetchUserProfile() {
+    async fetchCurrentUser() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/users/${this.$route.params.id}/info/`
+          "http://127.0.0.1:8000/api/users/current/"
         );
         this.user = response.data;
         this.fetchFriendsCount();
         this.fetchUserPosts();
-        if (this.activeTab === "friends") {
-          this.fetchFriends();
-        }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error("Error fetching current user data:", error);
       }
     },
     async fetchUserPosts() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/posts/?user_id=${this.user.id}`
+          "http://127.0.0.1:8000/api/posts/my_posts/"
         );
         const userPosts = response.data.map(async (post) => {
           try {
@@ -170,6 +174,20 @@ export default {
         console.error("Error fetching friends count:", error);
       }
     },
+    async unfriend(friendId) {
+      try {
+        const response = await axiosInstance.delete(
+          `http://127.0.0.1:8000/api/friend-requests/unfriend/${friendId}/`
+        );
+        // Assuming the API returns success if the unfriend action is successful
+        if (response.status === 200) {
+          // Update the friends list after unfriending
+          this.fetchFriends();
+        }
+      } catch (error) {
+        console.error("Error unfriending:", error);
+      }
+    },
     async fetchFriends() {
       try {
         const response = await axiosInstance.get(
@@ -194,18 +212,34 @@ export default {
         console.error("Error posting comment:", error);
       }
     },
+    editProfile() {
+      this.$router.push("/myprofile/edit");
+    },
     goToFriendProfile(friendId) {
-      this.$router.push({
-        name: "profile",
-        params: { id: friendId },
-      });
+      this.$router.push({ name: "profile", params: { id: friendId } });
+    },
+    formatDate(dateString) {
+      const date = new Date(dateString);
+
+      const day = date.getDate();
+      const month = date.toLocaleString("default", { month: "long" });
+      const hour = date.getHours();
+      const minute = date.getMinutes();
+      const ampm = hour >= 12 ? "PM" : "AM";
+
+      return `${day} ${month} at ${hour % 12}:${minute
+        .toString()
+        .padStart(2, "0")} ${ampm}`;
     },
   },
 };
 </script>
 
 <style scoped>
-/* Reuse styles from MyProfilePage or add any additional styles if needed */
+/* Add styles here */
+</style>
+
+<style scoped>
 .wrapper {
   display: flex;
   height: 100vh; /* Set wrapper height to full viewport height */
@@ -262,8 +296,28 @@ export default {
   margin: 5px 0;
 }
 
+.edit-profile-button {
+  padding: 8px 18px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #363636;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  margin-left: 10px;
+  transition: background-color 0.3s ease;
+}
+
 .email {
   color: gray;
+}
+
+.edit-profile-button:hover {
+  background-color: #1e1e1e;
+  text-shadow: #363636 1px 0 10px;
 }
 
 .post {
@@ -360,6 +414,25 @@ export default {
 
 .friend-item:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.unfriend-button {
+  margin-left: auto; /* Align the unfriend button to the right */
+  padding: 8px 18px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #fff; /* Red color for the unfriend button */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  width: 100px;
+}
+
+.unfriend-button:hover {
+  background-color: #f0f0f0; /* Darker red color on hover */
+  cursor: pointer;
 }
 
 .friend-avatar {

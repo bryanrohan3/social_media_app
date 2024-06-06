@@ -9,6 +9,7 @@ api_router.register(r'posts', viewsets.PostViewSet, basename='post')
 api_router.register(r'comments', viewsets.CommentViewSet, basename='comment')
 api_router.register(r'likes', viewsets.LikeViewSet, basename='like')
 api_router.register(r'friend-requests', viewsets.FriendRequestViewSet, basename='friend-request')
+api_router.register(r'user-info', viewsets.UserViewSet, basename='user-info')
 
 
 urlpatterns = [

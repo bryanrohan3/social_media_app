@@ -2,7 +2,7 @@
   <div class="post-container">
     <div v-for="post in posts" :key="post.id" class="post">
       <div class="post-header">
-        <img class="avatar" src="https://via.placeholder.com/50" alt="Avatar" />
+        <img class="avatar" src="../assets/avatar.jpeg" alt="Avatar" />
         <div class="user-info">
           <p class="username">{{ post.username }}</p>
           <p class="date">{{ formatDate(post.date_time_created) }}</p>
@@ -20,7 +20,7 @@
           height="24px"
           viewBox="0 -960 960 960"
           width="24px"
-          :fill="post.liked ? 'black' : '#e8eaed'"
+          :fill="post.liked ? 'orange' : 'gray'"
         >
           <path
             d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L794-168q-9 20-30 34t-44 14Zm-360-80h360l120-280v-80H480l54-220-174 174v406Zm0-406v406-406Zm-80-34v80H160v360h120v80H80v-520h200Z"
@@ -34,7 +34,7 @@
           height="24px"
           viewBox="0 -960 960 960"
           width="24px"
-          fill="#e8eaed"
+          fill="gray"
         >
           <path
             d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z"
@@ -58,7 +58,7 @@
               class="comment-item"
             >
               <div class="comment-avatar">
-                <img src="https://via.placeholder.com/40" alt="Avatar" />
+                <img src="../assets/avatar.jpeg" alt="Avatar" />
               </div>
               <div class="comment-content">
                 <div class="comment-meta">
@@ -78,6 +78,7 @@
             v-model="post.commentText"
             class="comment-input"
             placeholder="Write a comment..."
+            :id="'comment-input-' + post.id"
           ></textarea>
           <!-- SVG icon for sending comment -->
           <svg
@@ -88,7 +89,7 @@
             height="24px"
             viewBox="0 -960 960 960"
             width="24px"
-            fill="#e8eaed"
+            fill="gray"
           >
             <path
               d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"
@@ -106,144 +107,56 @@
 </template>
 
 <script>
-import axios from "axios";
+// import axios from "axios";
 import CommentModal from "./CommentModal.vue";
+import { mapGetters } from "vuex";
+import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
     CommentModal,
   },
+  computed: {
+    ...mapGetters(["getAuthToken"]),
+  },
+  props: {
+    posts: {
+      type: Array,
+      required: true,
+    },
+    postComment: {
+      type: Function,
+      required: true,
+    },
+  },
   data() {
     return {
-      posts: [],
+      postsData: [],
       isModalOpen: false,
       selectedPost: null,
     };
   },
-  mounted() {
-    this.fetchPosts();
-  },
   methods: {
-    async fetchPosts() {
-      try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-
-        const response = await axios.get(
-          "http://127.0.0.1:8000/api/posts/friends_posts/",
-          config
-        );
-
-        const posts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axios.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`,
-              config
-            );
-            post.comments = commentsResponse.data; // Assign fetched comments to the post
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = []; // Default to an empty array on error
-          }
-          return post;
-        });
-
-        this.posts = await Promise.all(posts); // Wait for all comments to be fetched
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      }
-    },
-
-    async likePost(postId) {
-      try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.post(
-          `http://127.0.0.1:8000/api/likes/?post=${postId}`, // Include postId in the URL
-          {}, // No need for a request body
-          config
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error liking post:", error);
-      }
-    },
-
-    async unlikePost(postId) {
-      try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.delete(
-          `http://127.0.0.1:8000/api/unlike/?like=${postId}`,
-          config
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error unliking post:", error);
-      }
-    },
-
-    async postComment(postId, commentText) {
-      try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-        await axios.post(
-          "http://127.0.0.1:8000/api/comments/",
-          {
-            post: postId,
-            text: commentText,
-          },
-          config
-        );
-        // Clear the comment text area after posting
-        this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchPosts();
-      } catch (error) {
-        console.error("Error posting comment:", error);
-      }
-    },
-
-    async toggleLike(post) {
-      try {
-        console.log("toggleLike method called");
-        // Determine whether to like or unlike the post based on its current state
-        if (post.liked) {
-          // If the post is already liked, unlike it
-          await this.unlikePost(post.id);
-        } else {
-          // If the post is not liked, like it
-          await this.likePost(post.id);
-        }
-      } catch (error) {
-        console.error("Error toggling like:", error);
-      }
-    },
-
     viewMoreComments(post) {
       this.selectedPost = post;
       this.isModalOpen = true;
+    },
+    openComment(post) {
+      // Set the selected post
+      this.selectedPost = post;
+      // Get the comment input field of the specific post
+      const commentInput = document.getElementById(`comment-input-${post.id}`);
+      if (commentInput) {
+        // Calculate the position of the comment input field relative to the viewport
+        const rect = commentInput.getBoundingClientRect();
+        // Scroll to the comment input field, keeping the post in view
+        window.scrollTo({
+          top: window.pageYOffset + rect.top - 200, // Adjust the offset as needed
+          behavior: "smooth",
+        });
+        // Focus on the comment input field
+        commentInput.focus();
+      }
     },
 
     formatDate(date) {
@@ -283,6 +196,42 @@ export default {
             hour12: true,
           })
         );
+      }
+    },
+    async toggleLike(post) {
+      console.log("Toggling like for post:", post);
+      if (post.liked) {
+        // Unlike the post
+        try {
+          if (post.like_id) {
+            console.log("Unliking post with like_id:", post.like_id);
+            await axiosInstance.delete(
+              `http://127.0.0.1:8000/api/unlike/?like=${post.like_id}`
+            );
+            post.liked = false;
+            post.like_id = null;
+          } else {
+            console.error("Like ID is missing");
+          }
+        } catch (error) {
+          console.error("Error unliking the post:", error);
+        }
+      } else {
+        // Like the post
+        try {
+          console.log("Liking post:", post.id);
+          const response = await axiosInstance.post(
+            "http://127.0.0.1:8000/api/likes/",
+            {
+              post: post.id,
+            }
+          );
+          console.log("Post liked successfully:", response.data);
+          post.liked = true;
+          post.like_id = response.data.id; // Ensure this matches the backend response structure
+        } catch (error) {
+          console.error("Error liking the post:", error);
+        }
       }
     },
   },
@@ -360,6 +309,33 @@ textarea:active {
 .comment-icon:hover {
   fill: lightgrey;
   cursor: pointer;
+  transform: scale(1.1) rotate(-45deg); /* Rotate 45 degrees when clicked */
+}
+
+.like-icon,
+.comment-icon {
+  transition: transform 0.2s ease-in-out; /* Add a transition for the transform property */
+  cursor: pointer;
+}
+.like-icon,
+.comment-icon {
+  transition: transform 0.2s ease-in-out; /* Add a transition for the transform property */
+  cursor: pointer;
+}
+
+.like-icon:hover,
+.comment-icon:hover,
+.like-icon.clicked,
+.comment-icon.clicked {
+  fill: lightgrey;
+  cursor: pointer;
+  transform: scale(1.1); /* Scale the icon slightly when hovered or clicked */
+  transform: scale(1.1) rotate(-15deg); /* Rotate 45 degrees when clicked */
+}
+
+.like-icon.clicked,
+.comment-icon.clicked {
+  transform: scale(1.1) rotate(45deg); /* Rotate 45 degrees when clicked */
 }
 
 .comment-section {
@@ -368,12 +344,12 @@ textarea:active {
 
 .comment-input-wrapper {
   position: relative;
-  display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .comment-input {
+  position: relative;
   width: 430px;
   border: 1px solid #eff2f5;
   border-radius: 15px;
@@ -384,7 +360,7 @@ textarea:active {
 }
 
 .send-icon {
-  fill: #e8eaed;
+  fill: gray;
   width: 24px;
   height: 24px;
   cursor: pointer;
