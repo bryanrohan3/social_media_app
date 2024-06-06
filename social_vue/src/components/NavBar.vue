@@ -18,7 +18,7 @@
         </svg>
         <router-link to="/">Home</router-link>
       </div>
-      <div class="nav-item" @click="toggleSearchInput">
+      <a class="nav-item" @click="toggleSearchInput">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           height="24px"
@@ -31,7 +31,7 @@
           />
         </svg>
         <a>Search</a>
-      </div>
+      </a>
       <div class="nav-item">
         <svg
           xmlns="http://www.w3.org/2000/svg"

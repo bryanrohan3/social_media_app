@@ -10,7 +10,7 @@
       v-if="userProfile && userProfile.username"
     >
       <div class="comment-avatar">
-        <img src="" alt="Avatar" />
+        <img class="profile-avatar" src="@/assets/avatar.jpeg" alt="Avatar" />
       </div>
       <div class="user-details">
         <div class="username">{{ userProfile.username }}</div>
