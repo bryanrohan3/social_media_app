@@ -1,6 +1,6 @@
 <template>
   <div class="post-container">
-    <div v-for="post in posts" :key="post.id" class="post">
+    <div v-for="post in sortedPosts" :key="post.id" class="post">
       <div class="post-header">
         <img class="avatar" src="../assets/avatar.jpeg" alt="Avatar" />
         <div class="user-info">
@@ -118,6 +118,17 @@ export default {
   },
   computed: {
     ...mapGetters(["getAuthToken"]),
+    sortedPosts() {
+      return this.posts
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_time_created) - new Date(a.date_time_created)
+        );
+    },
+  },
+  created() {
+    this.postsData = this.sortPosts(this.posts);
   },
   props: {
     posts: {
@@ -140,6 +151,14 @@ export default {
     viewMoreComments(post) {
       this.selectedPost = post;
       this.isModalOpen = true;
+    },
+    sortPosts(posts) {
+      return posts
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(b.date_time_created) - new Date(a.date_time_created)
+        );
     },
     openComment(post) {
       // Set the selected post
@@ -239,30 +258,6 @@ export default {
 </script>
 
 <style scoped>
-input[type="text"]:focus,
-input[type="text"]:active,
-textarea:focus,
-textarea:active {
-  outline: none;
-}
-
-.post-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-left: 200px;
-}
-
-.post {
-  background-color: white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  padding: 20px;
-  display: flex; /* Ensure the post content is flex */
-  flex-direction: column; /* Arrange the content vertically */
-  width: 450px;
-}
-
 .post-header {
   display: flex;
   align-items: center; /* Center items horizontally */
@@ -273,6 +268,7 @@ textarea:active {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  border: 2px solid #b2b2b2;
 }
 
 .user-info {
@@ -342,14 +338,7 @@ textarea:active {
   margin-top: 10px;
 }
 
-.comment-input-wrapper {
-  position: relative;
-  align-items: center;
-  gap: 10px;
-}
-
 .comment-input {
-  position: relative;
   width: 430px;
   border: 1px solid #eff2f5;
   border-radius: 15px;
@@ -448,5 +437,39 @@ textarea:active {
   font-size: 0.725rem;
   margin-top: 5px;
   display: flex;
+}
+
+input[type="text"]:focus,
+input[type="text"]:active,
+textarea:focus,
+textarea:active {
+  outline: none;
+}
+
+.post-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-left: 200px;
+  z-index: 1; /* Ensure the post container is below the modal */
+}
+
+.post {
+  background-color: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.07);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 450px;
+  z-index: 1; /* Ensure the post is below the modal */
+}
+
+.comment-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1; /* Ensure the comment input is below the modal */
 }
 </style>
