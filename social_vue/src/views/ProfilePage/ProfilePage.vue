@@ -11,7 +11,18 @@
           <div class="profile-info">
             <div class="info-top">
               <h1 class="username">{{ user.username }}</h1>
+              <button
+                v-if="isFriend"
+                class="friend-button"
+                @click="removeFriend"
+              >
+                Friends
+              </button>
+              <button v-else class="friend-button" @click="addFriend">
+                Add Friend
+              </button>
             </div>
+
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
             <p class="email">Friends · {{ friendsCount }}</p>
           </div>
@@ -91,6 +102,7 @@ export default {
       searchQuery: "",
       friendsCount: 0,
       activeTab: "posts", // Set default tab to 'posts'
+      isFriend: false,
     };
   },
   computed: {
@@ -130,8 +142,20 @@ export default {
         if (this.activeTab === "friends") {
           this.fetchFriends();
         }
+        this.fetchFriendshipStatus(); // Call fetchFriendshipStatus after fetching user profile
       } catch (error) {
         console.error("Error fetching user profile:", error);
+      }
+    },
+    async fetchFriendshipStatus() {
+      try {
+        const response = await axiosInstance.get(
+          `http://127.0.0.1:8000/api/friend-requests/${this.user.id}/friendship-status/`
+        );
+        // Update isFriend based on the response status
+        this.isFriend = response.data.status === "friends";
+      } catch (error) {
+        console.error("Error fetching friendship status:", error);
       }
     },
     async fetchUserPosts() {
@@ -327,14 +351,26 @@ export default {
   padding: 10px 20px;
   margin: 0 10px;
   cursor: pointer;
-  background-color: lightgrey;
+  background-color: #efefef;
   border: none;
+  color: black;
   border-radius: 4px;
   font-weight: bold;
 }
 .tabs button.active {
   background-color: #1e1e1e;
   color: white;
+}
+
+.tabs button:hover {
+  background-color: #ddd;
+  transform: scale(1.04);
+}
+
+.tabs button.active:hover {
+  background-color: #555;
+  color: white;
+  transform: scale(1.04);
 }
 
 /* Friend list */
@@ -402,5 +438,22 @@ export default {
 
 .search-input:focus {
   outline: none;
+}
+
+.friend-button {
+  padding: 8px 17px;
+  background-color: #efefef;
+  color: #1e1e1e;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-weight: 600;
+}
+
+.friend-button:hover {
+  background-color: #cfcfcf;
 }
 </style>

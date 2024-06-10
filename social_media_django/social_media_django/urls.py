@@ -18,5 +18,6 @@ urlpatterns = [
     path('api/unlike/', viewsets.LikeViewSet.as_view({'delete': 'unlike'}), name='unlike'),
      path('api/users/<int:pk>/block/', viewsets.UserViewSet.as_view({'post': 'block_user'}), name='user-block'),
     path('api/users/<int:pk>/unblock/', viewsets.UserViewSet.as_view({'post': 'unblock_user'}), name='user-unblock'),
+    path('api/friend-requests/<int:pk>/friendship-status/', viewsets.FriendRequestViewSet.as_view({'get': 'friendship_status'}), name='friendship-status'),
 ]
 

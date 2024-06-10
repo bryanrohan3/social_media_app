@@ -380,7 +380,6 @@ class CommentViewSet(
         # TODO: I would do this in the serializer, but this is fine
         serializer.save(user=self.request.user)
 
-
 class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     queryset = FriendRequest.objects.all()  # Queryset for FriendRequestViewSet
     serializer_class = FriendRequestSerializer  # Serializer class for FriendRequestViewSet
@@ -467,3 +466,28 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             'received_requests': received_serializer.data,
             'sent_requests': sent_serializer.data
         })
+    
+    @action(detail=True, methods=['get'])
+    def friendship_status(self, request, pk=None):
+        # pk is typically the user ID of the other user
+
+        # Get the user with the given ID
+        other_user = get_object_or_404(User, pk=pk)
+        
+        # Print the user details
+        print(f"Checking friendship status between {request.user.id} and {other_user.id}")
+
+        # Check if there exists a friend request between the current user and the other user
+        friend_request = FriendRequest.objects.filter(
+            Q(from_user=request.user, to_user=other_user) |
+            Q(from_user=other_user, to_user=request.user),
+            status='accepted'
+        ).first()
+
+        # Print the friend request details
+        if friend_request:
+            print(f"Friend request found: {friend_request}")
+            return Response({'status': 'friends'}, status=status.HTTP_200_OK)
+        else:
+            print(f"No friend request found between {request.user.id} and {other_user.id}")
+            return Response({'status': 'not friends'}, status=status.HTTP_200_OK)
