@@ -300,8 +300,8 @@ export default {
   padding: 8px 18px;
   font-size: 16px;
   cursor: pointer;
-  background-color: #363636;
-  color: #fff;
+  background-color: #efefef;
+  color: #363636;
   border: none;
   border-radius: 10px;
   font-weight: 600;
@@ -316,8 +316,7 @@ export default {
 }
 
 .edit-profile-button:hover {
-  background-color: #1e1e1e;
-  text-shadow: #363636 1px 0 10px;
+  background-color: #cfcfcf;
 }
 
 .post {
@@ -352,6 +351,8 @@ export default {
   font-weight: bold;
   margin: 0;
   align-self: start;
+  font-size: 20px;
+  padding: 7px 0 0 0;
 }
 
 .date {
