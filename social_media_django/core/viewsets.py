@@ -398,7 +398,7 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         )
 
     def get_queryset(self):
-        #  Retrieves the queryset based on the action and user_id.
+    #  Retrieves the queryset based on the action and user_id.
         user_id = self.request.query_params.get('user_id', self.request.user.id)  # Retrieve user_id from request params, default to current user
         user = get_object_or_404(User, pk=user_id)  # Get the User object using the user_id
 
@@ -414,9 +414,14 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
 
         elif self.action == 'pending_requests':
             # Retrieve pending friend requests for the user
-            return FriendRequest.objects.filter(to_user=user, status='pending')
+            queryset = FriendRequest.objects.filter(to_user=user, status='pending')
 
-        return super().get_queryset()    # Call parent class method if action is not 'friends' or 'pending_requests'
+            # Print the from_user filter
+            print("From user filter:", queryset.query.where)  # Print the WHERE clause of the queryset
+
+            return queryset
+
+        return super().get_queryset()  # Call parent class method if action is not 'friends' or 'pending_requests'
     
     @action(detail=False, methods=['get'])
     def friends_count(self, request, *args, **kwargs):
@@ -452,20 +457,27 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         queryset = self.filter_queryset(self.get_queryset())  # Filter queryset based on request
         serializer = self.get_serializer(queryset, many=True)  # Serialize queryset
         return Response(serializer.data)  # Return serialized data
-
+    
     @action(detail=False, methods=['GET'])
     def pending_requests(self, request):
-        # Retrieves pending friend requests.
-        queryset = self.filter_queryset(self.get_queryset())  # Filter queryset based on request
-        received_requests = queryset.filter(status='pending', to_user=request.user)  # Filter received requests
-        sent_requests = queryset.filter(status='pending', from_user=request.user)  # Filter sent requests
-        received_serializer = self.get_serializer(received_requests, many=True)  # Serialize
-        sent_serializer = FriendRequestSerializer(sent_requests, many=True)
+        user_id = request.query_params.get('user_id', request.user.id)
+        user = get_object_or_404(User, pk=user_id)
+        
+        # Filter received requests
+        received_requests = FriendRequest.objects.filter(to_user=user, status='pending')
+        
+        # Filter sent requests
+        sent_requests = FriendRequest.objects.filter(from_user=user, status='pending')
+        
+        # Serialize the received and sent requests
+        received_serializer = self.get_serializer(received_requests, many=True)
+        sent_serializer = self.get_serializer(sent_requests, many=True)
 
         return Response({
             'received_requests': received_serializer.data,
             'sent_requests': sent_serializer.data
         })
+
     
     @action(detail=True, methods=['get'])
     def friendship_status(self, request, pk=None):
@@ -474,8 +486,6 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         # Get the user with the given ID
         other_user = get_object_or_404(User, pk=pk)
         
-        # Print the user details
-        print(f"Checking friendship status between {request.user.id} and {other_user.id}")
 
         # Check if there exists a friend request between the current user and the other user
         friend_request = FriendRequest.objects.filter(
@@ -486,8 +496,6 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
 
         # Print the friend request details
         if friend_request:
-            print(f"Friend request found: {friend_request}")
             return Response({'status': 'friends'}, status=status.HTTP_200_OK)
         else:
-            print(f"No friend request found between {request.user.id} and {other_user.id}")
             return Response({'status': 'not friends'}, status=status.HTTP_200_OK)

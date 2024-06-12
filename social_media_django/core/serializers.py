@@ -103,21 +103,29 @@ class ShortCommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'post', 'text', 'date_time_created', 'username']
 
 class FriendRequestSerializer(serializers.ModelSerializer):
-    from_user = serializers.HiddenField(default=serializers.CurrentUserDefault())    
+    from_user_username = serializers.SerializerMethodField()  # Include from_user_username field
+    to_user_username = serializers.SerializerMethodField()
+
     class Meta:
         model = FriendRequest
-        fields = ['id', 'from_user', 'to_user', 'status', 'date_time_created']
+        fields = ['id', 'from_user', 'from_user_username', 'to_user', 'to_user_username', 'status', 'date_time_created']
+
+    def get_from_user_username(self, obj):
+        return obj.from_user.username if obj.from_user else None
+
+    def get_to_user_username(self, obj):
+        return obj.to_user.username if obj.to_user else None
 
     def validate_to_user(self, value):
-        # Check if the requesting user has already sent a friend request to the recipient
         if FriendRequest.objects.filter(from_user=self.context['request'].user, to_user=value).exists():
             raise serializers.ValidationError('A friend request has already been sent to this user.')
         return value
 
     def create(self, validated_data):
-        # Add the requesting user to the validated data and create the friend request
         validated_data['from_user'] = self.context['request'].user
         return super().create(validated_data)
+
+
 
 
 class BlockSerializer(serializers.ModelSerializer):

@@ -39,6 +39,12 @@ const routes = [
     name: "editprofile",
     component: () => import("../views/EditProfilePage/EditProfilePage.vue"),
   },
+  {
+    path: "/friend-requests",
+    name: "friendrequests",
+    component: () =>
+      import("../views/FriendRequestsPage/FriendRequestsPage.vue"),
+  },
 ];
 
 const router = createRouter({
