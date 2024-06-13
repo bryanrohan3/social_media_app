@@ -37,8 +37,8 @@
           ></textarea>
         </div>
         <div class="form-footer">
-          <span class="emoji-icon"
-            ><svg
+          <span class="emoji-icon">
+            <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
               viewBox="0 -960 960 960"
@@ -47,11 +47,43 @@
             >
               <path
                 d="M480-480Zm0 400q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q43 0 83 8.5t77 24.5v90q-35-20-75.5-31.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-32-6.5-62T776-600h86q9 29 13.5 58.5T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm320-600v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400H276q25 63 80.5 101.5T480-260Z"
-              /></svg
-          ></span>
+              />
+            </svg>
+          </span>
           <span class="char-counter">{{ caption.length }}/2,200</span>
         </div>
       </form>
+
+      <!-- Loading Spinner -->
+      <div v-if="loading" class="loading-spinner">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#000000"
+        >
+          <path
+            d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-155.5t86-127Q252-817 325-848.5T480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480-80Z"
+          />
+        </svg>
+      </div>
+
+      <!-- Success Message -->
+      <div v-if="success" class="success-message">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#000000"
+        >
+          <path
+            d="m381-240 424-424-57-56-368 367-169-170-57 57 227 226Zm0 113L42-466l169-170 170 170 366-367 172 168-538 538Z"
+          />
+        </svg>
+        <span>Post Successful</span>
+      </div>
     </div>
   </div>
 </template>
@@ -64,6 +96,8 @@ export default {
   data() {
     return {
       caption: "",
+      loading: false,
+      success: false,
     };
   },
   computed: {
@@ -77,6 +111,8 @@ export default {
       this.$emit("close");
     },
     async createPost() {
+      this.loading = true;
+      this.success = false;
       try {
         const response = await axiosInstance.post(
           "http://127.0.0.1:8000/api/posts/",
@@ -85,9 +121,15 @@ export default {
           }
         );
         console.log("Post created:", response.data);
-        this.closeModal();
+        this.success = true;
+        setTimeout(() => {
+          this.success = false;
+          this.closeModal();
+        }, 2000); // Hide success message after 2 seconds
       } catch (error) {
         console.error("Error creating post:", error);
+      } finally {
+        this.loading = false;
       }
     },
   },
@@ -206,6 +248,7 @@ textarea {
   font-size: 12px;
   color: #999;
 }
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -240,6 +283,25 @@ textarea {
   font-weight: bold;
   font-size: 16px;
   cursor: pointer;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  color: green;
+  font-weight: bold;
+}
+
+.success-message svg {
+  margin-right: 8px;
 }
 
 @media screen and (max-width: 600px) {

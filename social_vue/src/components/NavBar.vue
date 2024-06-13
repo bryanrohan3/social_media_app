@@ -42,24 +42,6 @@
         <a>Search</a>
       </a>
 
-      <router-link to="/myprofile" exact>
-        <div class="nav-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            height="24px"
-            viewBox="0 -960 960 960"
-            width="24px"
-            fill="#000000"
-            class="icon"
-          >
-            <path
-              d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"
-            />
-          </svg>
-          Profile
-        </div>
-      </router-link>
-
       <div class="nav-item" @click="openCreatePostModal">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -94,6 +76,24 @@
         </div>
       </router-link>
 
+      <router-link to="/myprofile" exact>
+        <div class="nav-item">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            height="24px"
+            viewBox="0 -960 960 960"
+            width="24px"
+            fill="#000000"
+            class="icon"
+          >
+            <path
+              d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"
+            />
+          </svg>
+          Profile
+        </div>
+      </router-link>
+
       <button
         class="logout-button"
         v-if="userProfile && userProfile.token"
@@ -106,39 +106,41 @@
       </button>
     </div>
 
-    <div v-if="showSearchInput" class="search-container">
-      <p class="SearchHeader">Search</p>
-      <input
-        type="text"
-        v-model="searchQuery"
-        @input="debouncedSearch"
-        placeholder="Search user profiles..."
-      />
-      <ul v-if="searchResults.length">
-        <li
-          v-for="user in searchResults"
-          :key="user.id"
-          @click="goToUserProfile(user.id)"
-        >
-          <!-- Add the @click event handler above -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            height="24px"
-            viewBox="0 -960 960 960"
-            width="24px"
-            fill="#000000"
+    <transition name="slide-fade">
+      <div v-if="showSearchInput" class="search-container">
+        <p class="SearchHeader">Search</p>
+        <input
+          type="text"
+          v-model="searchQuery"
+          @input="debouncedSearch"
+          placeholder="Search user profiles..."
+        />
+        <ul v-if="searchResults.length">
+          <li
+            v-for="user in searchResults"
+            :key="user.id"
+            @click="goToUserProfile(user.id)"
           >
-            <path
-              d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"
-            />
-          </svg>
-          <div class="username-details">
-            <p class="username">{{ user.username }}</p>
-            <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
-          </div>
-        </li>
-      </ul>
-    </div>
+            <!-- Add the @click event handler above -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="24px"
+              viewBox="0 -960 960 960"
+              width="24px"
+              fill="#000000"
+            >
+              <path
+                d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"
+              />
+            </svg>
+            <div class="username-details">
+              <p class="username">{{ user.username }}</p>
+              <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </transition>
 
     <CreatePostModal
       v-if="showCreatePostModal"
@@ -299,23 +301,6 @@ body {
   font-size: 16px;
 }
 
-.search-container {
-  position: fixed;
-  top: 0;
-  left: 200px; /* Start from where the navbar ends */
-  width: 300px;
-  height: 100%;
-  background-color: #f9f9fd;
-  border-right: #e9e9e5 solid 1px;
-  transform: translateX(100%);
-  transition: transform 0.5s ease; /* Transition for sliding effect */
-  display: block;
-  flex-direction: column;
-  padding: 20px; /* Add padding to avoid overlap */
-  box-sizing: border-box; /* Include padding in width calculation */
-  z-index: 300;
-}
-
 .search-container input,
 .search-container li {
   width: 100%; /* Adjust width to account for padding */
@@ -325,6 +310,16 @@ body {
 
 .search-container li:hover {
   background-color: #f1f1f1;
+}
+
+.search-container input {
+  outline: none;
+  font-size: 16px;
+  width: 100%; /* Adjust width to account for padding */
+  padding: 10px;
+  box-sizing: border-box; /* Ensure padding is included in the width */
+  border-radius: 10px;
+  border: 1px solid #e9e9e5;
 }
 
 .search-container ul {
@@ -359,12 +354,14 @@ body {
   font-weight: bold;
   color: black;
   font-size: 16px;
+  align-items: start;
 }
 
 .search-container li .details p:last-child,
 .search-container li .username-details .name {
   font-size: 14px;
   color: gray;
+  align-items: start;
 }
 
 .navbar-wrapper.active .search-container {
@@ -404,7 +401,6 @@ button {
 
 button:hover {
   background-color: #363636; /* Set darker background color on hover */
-  /* add pop up animation */
 }
 
 .nav-item .icon {
@@ -412,6 +408,48 @@ button:hover {
 }
 
 .nav-item:hover .icon {
-  transform: scale(1.1); /* Scale the icon slightly when hovered */
+  transform: scale(1.1);
+}
+
+.search-container-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 299;
+}
+
+/* New styles */
+.search-container {
+  position: fixed;
+  top: 0;
+  left: 220px; /* Adjust to your navbar width */
+  width: 300px;
+  height: 100%;
+  background-color: #ffffff;
+  border-right: 1px solid #e9e9e5;
+  z-index: 300;
+  overflow: hidden;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  transform: translateX(0%);
+  opacity: 1;
 }
 </style>
