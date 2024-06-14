@@ -56,6 +56,7 @@
 
 <script>
 import axios from "axios";
+import { mapMutations } from "vuex";
 
 export default {
   data() {
@@ -70,6 +71,7 @@ export default {
     };
   },
   methods: {
+    ...mapMutations(["setAuthToken", "setUserProfile"]),
     async handleSignUp() {
       // Check if passwords match
       if (this.password !== this.confirmPassword) {
@@ -78,6 +80,7 @@ export default {
       }
 
       try {
+        // Sign up the user
         const response = await axios.post("http://localhost:8000/api/users/", {
           username: this.username,
           first_name: this.firstName,
@@ -85,9 +88,28 @@ export default {
           email: this.email,
           password: this.password,
         });
-        console.log(response.data);
-        // Redirect to home page
-        this.$router.push("/");
+
+        // Log in the user immediately after signup
+        const loginResponse = await axios.post(
+          "http://localhost:8000/api/users/login/",
+          {
+            username: this.username,
+            password: this.password,
+          }
+        );
+
+        // Retrieve the authentication token and user profile
+        const token = loginResponse.data.token;
+        const user = loginResponse.data.user;
+
+        // Store token and user in Vuex
+        this.setAuthToken(token);
+        this.setUserProfile(user);
+
+        // Redirect to home page or any desired page
+        setTimeout(() => {
+          this.$router.push("/");
+        }, 500);
       } catch (error) {
         console.error(error.response.data);
         this.errorMessage = error.response.data.error || "An error occurred";
