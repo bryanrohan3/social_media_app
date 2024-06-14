@@ -97,7 +97,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
     # Creating A User
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data) # Initialize UserSerializer with request data
-        print(serializer)
+        # print(serializer)
         serializer.is_valid(raise_exception=True) # Validate serializer data
         user = serializer.save() # Save user using serializer
         return Response({'user': serializer.data}, status=status.HTTP_201_CREATED) # Return response with user data
@@ -130,8 +130,8 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
             
             # Generate or retrieve the authentication token for the user
             token, created = Token.objects.get_or_create(user=user)
-            print(request, user)
-            print(token)
+            # print(request, user)
+            # print(token)
             
             # Return response with success message, user data, and authentication token
             return Response({'message': 'Login successful', 'user': UserSerializer(user).data, 'token': token.key})
