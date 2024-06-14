@@ -1,6 +1,11 @@
 <template>
   <div class="wrapper">
     <NavBar />
+    <SettingsModal
+      v-if="showSettingsModal"
+      :showModal="showSettingsModal"
+      @close="toggleSettingsModal"
+    />
     <div class="content">
       <div class="profile-page" v-if="user">
         <!-- Profile header -->
@@ -14,7 +19,22 @@
               <button @click="editProfile" class="edit-profile-button">
                 Edit Profile
               </button>
+              <!-- Add a click event handler for the cog icon -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="54px"
+                viewBox="0 -960 960 960"
+                width="54px"
+                fill="#000000"
+                @click="toggleSettingsModal"
+                style="cursor: pointer"
+              >
+                <path
+                  d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"
+                />
+              </svg>
             </div>
+
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
             <p class="email">Friends · {{ friendsCount }}</p>
           </div>
@@ -95,12 +115,14 @@
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
+import SettingsModal from "@/components/SettingsModal.vue"; // Import SettingsModal
 import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
     NavBar,
     Post,
+    SettingsModal, // Register SettingsModal
   },
   data() {
     return {
@@ -111,6 +133,7 @@ export default {
       friendsCount: 0,
       activeTab: "posts", // Set default tab to 'posts'
       commentText: "",
+      showSettingsModal: false, // Modal visibility state
     };
   },
   computed: {
@@ -231,13 +254,12 @@ export default {
         .toString()
         .padStart(2, "0")} ${ampm}`;
     },
+    toggleSettingsModal() {
+      this.showSettingsModal = !this.showSettingsModal;
+    },
   },
 };
 </script>
-
-<style scoped>
-/* Add styles here */
-</style>
 
 <style scoped>
 .wrapper {
@@ -352,7 +374,7 @@ export default {
   margin: 0;
   align-self: start;
   font-size: 20px;
-  padding: 7px 0 0 0;
+  padding: 16px 0 0 0;
 }
 
 .date {

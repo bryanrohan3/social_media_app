@@ -173,10 +173,20 @@ export default {
 
 .username {
   font-weight: bold;
+  font-size: 14px;
 }
 
 .name {
   font-size: 0.9em;
+  font-size: 14px;
+}
+
+.profile-avatar {
+  border: 2px solid #b2b2b2;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
 }
 
 @media screen and (max-width: 768px) {

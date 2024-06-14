@@ -18,11 +18,17 @@
               >
                 Friends
               </button>
+              <button
+                v-else-if="friendRequestSent"
+                class="friend-button"
+                @click="cancelFriendRequest"
+              >
+                Cancel
+              </button>
               <button v-else class="friend-button" @click="addFriend">
                 Add Friend
               </button>
             </div>
-
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
             <p class="email">Friends · {{ friendsCount }}</p>
           </div>
@@ -103,6 +109,9 @@ export default {
       friendsCount: 0,
       activeTab: "posts", // Set default tab to 'posts'
       isFriend: false,
+      friendRequestSent: false,
+      friendRequestId: null,
+      currentUser: null, // To store the current logged in user
     };
   },
   computed: {
@@ -143,6 +152,7 @@ export default {
           this.fetchFriends();
         }
         this.fetchFriendshipStatus(); // Call fetchFriendshipStatus after fetching user profile
+        this.fetchCurrentUser(); // Fetch current logged in user
       } catch (error) {
         console.error("Error fetching user profile:", error);
       }
@@ -154,8 +164,22 @@ export default {
         );
         // Update isFriend based on the response status
         this.isFriend = response.data.status === "friends";
+        if (response.data.status === "requested") {
+          this.friendRequestSent = true;
+          this.friendRequestId = response.data.request_id;
+        }
       } catch (error) {
         console.error("Error fetching friendship status:", error);
+      }
+    },
+    async fetchCurrentUser() {
+      try {
+        const response = await axiosInstance.get(
+          "http://127.0.0.1:8000/api/users/current/"
+        );
+        this.currentUser = response.data;
+      } catch (error) {
+        console.error("Error fetching current user data:", error);
       }
     },
     async fetchUserPosts() {
@@ -223,6 +247,33 @@ export default {
         name: "profile",
         params: { id: friendId },
       });
+    },
+    async addFriend() {
+      try {
+        await this.fetchCurrentUser();
+        const response = await axiosInstance.post(
+          "http://127.0.0.1:8000/api/friend-requests/",
+          {
+            to_user: this.user.id,
+            from_user: this.currentUser.id,
+          }
+        );
+        this.friendRequestSent = true;
+        this.friendRequestId = response.data.id;
+      } catch (error) {
+        console.error("Error sending friend request:", error);
+      }
+    },
+    async cancelFriendRequest() {
+      try {
+        await axiosInstance.delete(
+          `http://127.0.0.1:8000/api/friend-requests/${this.friendRequestId}/`
+        );
+        this.friendRequestSent = false;
+        this.friendRequestId = null;
+      } catch (error) {
+        console.error("Error canceling friend request:", error);
+      }
     },
   },
 };
@@ -322,6 +373,8 @@ export default {
   font-weight: bold;
   margin: 0;
   align-self: start;
+  font-size: 20px;
+  padding: 5px 0 0 0;
 }
 
 .date {
