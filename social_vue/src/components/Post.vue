@@ -6,6 +6,7 @@
         <div class="user-info">
           <p class="username">{{ post.username }}</p>
           <p class="date">{{ formatDate(post.date_time_created) }}</p>
+          <!-- Updated line to use formatDate -->
         </div>
       </div>
       <p class="caption">{{ post.caption }}</p>
@@ -68,6 +69,7 @@
                 <span class="comment-date">{{
                   formatDate(comment.date_time_created)
                 }}</span>
+                <!-- Updated line to use formatDate -->
               </div>
             </li>
           </ul>
@@ -107,10 +109,10 @@
 </template>
 
 <script>
-// import axios from "axios";
 import CommentModal from "./CommentModal.vue";
 import { mapGetters } from "vuex";
 import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { formatDate } from "@/api/formatDateHelpers"; // Import the formatDate function
 
 export default {
   components: {
@@ -152,6 +154,7 @@ export default {
       this.selectedPost = post;
       this.isModalOpen = true;
     },
+    formatDate,
     sortPosts(posts) {
       return posts
         .slice()
@@ -178,52 +181,11 @@ export default {
       }
     },
 
-    formatDate(date) {
-      const options = {
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      };
-      const formattedDate = new Date(date);
-      const year = formattedDate.getFullYear();
-
-      if (year === 2024) {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      } else {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      }
-    },
     async toggleLike(post) {
-      console.log("Toggling like for post:", post);
       if (post.liked) {
         // Unlike the post
         try {
           if (post.like_id) {
-            console.log("Unliking post with like_id:", post.like_id);
             await axiosInstance.delete(
               `http://127.0.0.1:8000/api/unlike/?like=${post.like_id}`
             );
@@ -238,14 +200,12 @@ export default {
       } else {
         // Like the post
         try {
-          console.log("Liking post:", post.id);
           const response = await axiosInstance.post(
             "http://127.0.0.1:8000/api/likes/",
             {
               post: post.id,
             }
           );
-          console.log("Post liked successfully:", response.data);
           post.liked = true;
           post.like_id = response.data.id; // Ensure this matches the backend response structure
         } catch (error) {
