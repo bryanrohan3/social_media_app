@@ -22,7 +22,6 @@ const routes = [
     name: "login",
     component: () => import("../views/LogInPage/LogInPage.vue"),
   },
-  // MyProfilePage
   {
     path: "/myprofile",
     name: "myprofile",
@@ -44,6 +43,11 @@ const routes = [
     name: "friendrequests",
     component: () =>
       import("../views/FriendRequestsPage/FriendRequestsPage.vue"),
+  },
+  // Catch-all route for undefined routes
+  {
+    path: "/:catchAll(.*)",
+    redirect: { name: "home" },
   },
 ];
 
