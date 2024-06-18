@@ -211,13 +211,14 @@ export default {
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+          `http://127.0.0.1:8000/api/friend-requests/friends_count/?user_id=${this.user.id}`
         );
-        this.friendsCount = response.data.length;
+        this.friendsCount = response.data.friends_count;
       } catch (error) {
         console.error("Error fetching friends count:", error);
       }
     },
+
     async fetchFriends() {
       try {
         const response = await axiosInstance.get(
@@ -280,7 +281,6 @@ export default {
 </script>
 
 <style scoped>
-/* Reuse styles from MyProfilePage or add any additional styles if needed */
 .wrapper {
   display: flex;
   height: 100vh; /* Set wrapper height to full viewport height */
@@ -427,7 +427,6 @@ export default {
 }
 
 /* Friend list */
-
 .tab-content {
   margin-top: 20px;
 }

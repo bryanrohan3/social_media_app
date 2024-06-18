@@ -190,30 +190,32 @@ export default {
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+          `http://127.0.0.1:8000/api/friend-requests/friends_count/?user_id=${this.user.id}`
         );
-        this.friendsCount = response.data.length;
+        this.friendsCount = response.data.friends_count;
       } catch (error) {
         console.error("Error fetching friends count:", error);
       }
     },
+
     async unfriend(friendId) {
       try {
-        const response = await axiosInstance.delete(
+        // Send the delete request to unfriend the user
+        await axiosInstance.delete(
           `http://127.0.0.1:8000/api/friend-requests/unfriend/${friendId}/`
         );
-        // Assuming the API returns success if the unfriend action is successful
-        if (response.status === 200) {
-          // Update the friends list after unfriending
-          this.fetchFriends();
 
-          // remove the friends from the DOM
-          // this.friends = this.friends.filter(friend => { friend.id != deletedFriend.id })
-        }
+        // Update the UI by removing the friend from the DOM
+        // You can directly remove the friend from the local `this.friends` array
+        this.friends = this.friends.filter((friend) => friend.id !== friendId);
+
+        // Alternatively, if `this.friends` is not directly accessible or not up-to-date,
+        // you may emit an event or call a method that updates the friends list in the parent component.
       } catch (error) {
         console.error("Error unfriending:", error);
       }
     },
+
     async fetchFriends() {
       try {
         const response = await axiosInstance.get(
