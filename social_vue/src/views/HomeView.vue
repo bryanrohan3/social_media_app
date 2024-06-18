@@ -21,12 +21,11 @@
     </a>
   </div>
 </template>
-
 <script>
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
@@ -50,14 +49,12 @@ export default {
   methods: {
     async fetchPosts() {
       try {
-        const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/posts/friends_posts/"
-        );
+        const response = await axiosInstance.get(endpoints.posts);
 
         const posts = response.data.map(async (post) => {
           try {
             const commentsResponse = await axiosInstance.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
+              `${endpoints.comments}?post_id=${post.id}&latest=true`
             );
             post.comments = commentsResponse.data; // Assign fetched comments to the post
           } catch (error) {
@@ -78,10 +75,7 @@ export default {
 
     async likePost(postId) {
       try {
-        await axiosInstance.post(
-          `http://127.0.0.1:8000/api/likes/?post=${postId}`, // Include postId in the URL
-          {} // No need for a request body
-        );
+        await axiosInstance.post(`${endpoints.likes}?post=${postId}`);
         // Update the posts to reflect the change in likes
         this.fetchPosts();
       } catch (error) {
@@ -91,9 +85,7 @@ export default {
 
     async unlikePost(postId) {
       try {
-        await axiosInstance.delete(
-          `http://127.0.0.1:8000/api/unlike/?like=${postId}`
-        );
+        await axiosInstance.delete(`${endpoints.likes}?like=${postId}`);
         // Update the posts to reflect the change in likes
         this.fetchPosts();
       } catch (error) {
@@ -103,15 +95,12 @@ export default {
 
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+        await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        // Clear the comment text area after posting
-        this.commentText = "";
         // Update the posts to reflect the new comment
         this.fetchPosts();
-        // this.postComment(postId, commentText);
       } catch (error) {
         console.error("Error posting comment:", error);
       }

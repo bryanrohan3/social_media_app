@@ -53,7 +53,7 @@
 
 <script>
 import NavBar from "@/components/NavBar.vue";
-import axiosInstance from "@/api/axiosHelper";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   name: "FriendRequestsPage",
@@ -71,7 +71,7 @@ export default {
   methods: {
     fetchFriendRequests() {
       axiosInstance
-        .get("http://127.0.0.1:8000/api/friend-requests/pending_requests/")
+        .get(endpoints.pendingRequests)
         .then((response) => {
           this.receivedRequests = response.data.received_requests;
           this.sentRequests = response.data.sent_requests;
@@ -84,7 +84,7 @@ export default {
     },
     handleRequest(requestId, status) {
       axiosInstance
-        .patch(`http://127.0.0.1:8000/api/friend-requests/${requestId}/`, {
+        .patch(`${endpoints.friendRequests}${requestId}/`, {
           status: status,
         })
         .then(() => {
@@ -96,7 +96,7 @@ export default {
     },
     cancelRequest(requestId) {
       axiosInstance
-        .delete(`http://127.0.0.1:8000/api/friend-requests/${requestId}/`)
+        .delete(`${endpoints.friendRequests}${requestId}/`)
         .then(() => {
           this.fetchFriendRequests();
         })

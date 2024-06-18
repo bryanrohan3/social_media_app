@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
 import { formatDate } from "@/api/formatDateHelpers"; // Import the helper function
 
 export default {
@@ -51,16 +51,8 @@ export default {
   methods: {
     async fetchAllComments() {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-
-        const response = await axios.get(
-          `http://127.0.0.1:8000/api/comments/?post_id=${this.post.id}`,
-          config
+        const response = await axiosInstance.get(
+          `${endpoints.comments}?post_id=${this.post.id}`
         );
 
         this.comments = response.data;

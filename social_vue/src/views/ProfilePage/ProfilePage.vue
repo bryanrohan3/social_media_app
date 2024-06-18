@@ -93,7 +93,7 @@
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
@@ -143,7 +143,7 @@ export default {
     async fetchUserProfile() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/users/${this.$route.params.id}/info/`
+          `${endpoints.userProfile}${this.$route.params.id}/info/`
         );
         this.user = response.data;
         this.fetchFriendsCount();
@@ -160,7 +160,7 @@ export default {
     async fetchFriendshipStatus() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/${this.user.id}/friendship-status/`
+          `${endpoints.friendshipStatus}${this.user.id}/friendship-status/`
         );
         // Update isFriend based on the response status
         this.isFriend = response.data.status === "friends";
@@ -174,9 +174,7 @@ export default {
     },
     async fetchCurrentUser() {
       try {
-        const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/users/current/"
-        );
+        const response = await axiosInstance.get(endpoints.currentUser);
         this.currentUser = response.data;
       } catch (error) {
         console.error("Error fetching current user data:", error);
@@ -185,12 +183,12 @@ export default {
     async fetchUserPosts() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/posts/?user_id=${this.user.id}`
+          `${endpoints.userPosts}?user_id=${this.user.id}`
         );
         const userPosts = response.data.map(async (post) => {
           try {
             const commentsResponse = await axiosInstance.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
+              `${endpoints.comments}?post_id=${post.id}&latest=true`
             );
             post.comments = commentsResponse.data;
           } catch (error) {
@@ -211,18 +209,17 @@ export default {
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends_count/?user_id=${this.user.id}`
+          `${endpoints.friendsCount}?user_id=${this.user.id}`
         );
         this.friendsCount = response.data.friends_count;
       } catch (error) {
         console.error("Error fetching friends count:", error);
       }
     },
-
     async fetchFriends() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+          `${endpoints.friends}?user_id=${this.user.id}`
         );
         this.friends = response.data;
       } catch (error) {
@@ -231,7 +228,7 @@ export default {
     },
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+        await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
@@ -252,13 +249,10 @@ export default {
     async addFriend() {
       try {
         await this.fetchCurrentUser();
-        const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/api/friend-requests/",
-          {
-            to_user: this.user.id,
-            from_user: this.currentUser.id,
-          }
-        );
+        const response = await axiosInstance.post(endpoints.friendRequests, {
+          to_user: this.user.id,
+          from_user: this.currentUser.id,
+        });
         this.friendRequestSent = true;
         this.friendRequestId = response.data.id;
       } catch (error) {
@@ -268,7 +262,7 @@ export default {
     async cancelFriendRequest() {
       try {
         await axiosInstance.delete(
-          `http://127.0.0.1:8000/api/friend-requests/${this.friendRequestId}/`
+          `${endpoints.friendRequests}${this.friendRequestId}/`
         );
         this.friendRequestSent = false;
         this.friendRequestId = null;

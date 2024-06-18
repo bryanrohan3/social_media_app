@@ -80,7 +80,7 @@
 
 <script>
 import { mapGetters } from "vuex"; // Import mapGetters from Vuex
-import axiosInstance from "@/api/axiosHelper";
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import axiosInstance and endpoints
 
 export default {
   data() {
@@ -103,12 +103,9 @@ export default {
       this.loading = true;
       this.success = false;
       try {
-        const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/api/posts/",
-          {
-            caption: this.caption,
-          }
-        );
+        const response = await axiosInstance.post(endpoints.posts, {
+          caption: this.caption,
+        });
         this.success = true;
         setTimeout(() => {
           this.success = false;

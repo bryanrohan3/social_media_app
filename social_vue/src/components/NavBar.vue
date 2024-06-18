@@ -95,8 +95,7 @@
 import { mapGetters, mapMutations } from "vuex";
 import { debounce } from "lodash";
 import CreatePostModal from "@/components/CreatePostModal.vue";
-import router from "@/router";
-import axiosInstance from "@/api/axiosHelper";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   data() {
@@ -146,10 +145,8 @@ export default {
       }
 
       try {
-        const token = this.userProfile.token;
-
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/users/?query=${this.searchQuery}`
+          `${endpoints.userProfile}?query=${this.searchQuery}`
         );
         this.searchResults = response.data;
       } catch (error) {
