@@ -21,11 +21,12 @@
     </a>
   </div>
 </template>
+
 <script>
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   components: {
@@ -34,7 +35,7 @@ export default {
   },
   data() {
     return {
-      posts: [], // Initialize posts array
+      posts: [],
     };
   },
   computed: {
@@ -44,30 +45,26 @@ export default {
     },
   },
   mounted() {
-    this.fetchPosts(); // Fetch posts when the component is mounted
+    this.fetchPosts();
   },
   methods: {
     async fetchPosts() {
       try {
-        const response = await axiosInstance.get(endpoints.posts);
+        const response = await axiosInstance.get(
+          endpoints.posts + "friends_posts/"
+        );
 
-        const posts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axiosInstance.get(
-              `${endpoints.comments}?post_id=${post.id}&latest=true`
-            );
-            post.comments = commentsResponse.data; // Assign fetched comments to the post
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = []; // Default to an empty array on error
+        // Directly use the response data without additional API calls for comments
+        const posts = response.data.map((post) => {
+          if (post.latest_comment) {
+            post.comments = [post.latest_comment]; // Assign the latest comment to the post's comments
+          } else {
+            post.comments = []; // Default to an empty array if no latest comment is present
           }
           return post;
         });
 
-        this.posts = await Promise.all(posts); // Wait for all comments to be fetched
+        this.posts = posts; // No need to use Promise.all since we're not dealing with async operations within the map
       } catch (error) {
         console.error("Error fetching posts:", error);
       }
@@ -76,7 +73,6 @@ export default {
     async likePost(postId) {
       try {
         await axiosInstance.post(`${endpoints.likes}?post=${postId}`);
-        // Update the posts to reflect the change in likes
         this.fetchPosts();
       } catch (error) {
         console.error("Error liking post:", error);
@@ -86,7 +82,6 @@ export default {
     async unlikePost(postId) {
       try {
         await axiosInstance.delete(`${endpoints.likes}?like=${postId}`);
-        // Update the posts to reflect the change in likes
         this.fetchPosts();
       } catch (error) {
         console.error("Error unliking post:", error);
@@ -99,22 +94,23 @@ export default {
           post: postId,
           text: commentText,
         });
-        // Update the posts to reflect the new comment
         this.fetchPosts();
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
 
+    async viewMoreComments(post) {
+      // Implement the logic here to show more comments for the post
+      console.log("View more comments for post:", post);
+      // Example: You might want to expand a modal or toggle a state
+    },
+
     async toggleLike(post) {
       try {
-        console.log("toggleLike method called");
-        // Determine whether to like or unlike the post based on its current state
         if (post.liked) {
-          // If the post is already liked, unlike it
           await this.unlikePost(post.id);
         } else {
-          // If the post is not liked, like it
           await this.likePost(post.id);
         }
       } catch (error) {

@@ -182,26 +182,17 @@ export default {
     },
     async fetchUserPosts() {
       try {
-        const response = await axiosInstance.get(
-          `${endpoints.userPosts}?user_id=${this.user.id}`
-        );
-        const userPosts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axiosInstance.get(
-              `${endpoints.comments}?post_id=${post.id}&latest=true`
-            );
-            post.comments = commentsResponse.data;
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = [];
+        const response = await axiosInstance.get(endpoints.myPosts);
+        const userPosts = response.data.map((post) => {
+          if (post.latest_comment) {
+            post.comments = [post.latest_comment]; // Assign the latest comment to the post's comments
+          } else {
+            post.comments = []; // Default to an empty array if no latest comment is present
           }
           return post;
         });
 
-        this.userPosts = await Promise.all(userPosts);
+        this.userPosts = userPosts; // No need to use Promise.all since we're not dealing with async operations within the map
       } catch (error) {
         console.error("Error fetching user's posts:", error);
       }
