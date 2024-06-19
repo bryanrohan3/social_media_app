@@ -16,11 +16,11 @@
             <div class="comment-content">
               <div class="comment-meta">
                 <span class="comment-username">{{ comment.username }}</span>
+                <span class="comment-date">{{
+                  formatDate(comment.date_time_created)
+                }}</span>
               </div>
               <p class="comment-text">{{ comment.text }}</p>
-              <span class="comment-date">{{
-                formatDate(comment.date_time_created)
-              }}</span>
             </div>
           </li>
         </ul>
@@ -33,8 +33,8 @@
 </template>
 
 <script>
-import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
-import { formatDate } from "@/api/formatDateHelpers"; // Import the helper function
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
+import { formatDate } from "@/api/formatDateHelpers";
 
 export default {
   props: {
@@ -54,17 +54,17 @@ export default {
         const response = await axiosInstance.get(
           `${endpoints.comments}?post_id=${this.post.id}`
         );
-
         this.comments = response.data;
+        console.log("Fetched comments:", this.comments); // Check console for fetched comments
       } catch (error) {
         console.error(
-          `Error fetching all comments for post ${this.post.id}:`,
+          `Error fetching comments for post ${this.post.id}:`,
           error
         );
-        this.comments = [];
+        this.comments = []; // Handle error by setting comments to empty array
       }
     },
-    formatDate, // Use the imported helper function
+    formatDate,
   },
 };
 </script>
