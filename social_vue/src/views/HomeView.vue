@@ -27,6 +27,7 @@ import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
 import { axiosInstance, endpoints } from "@/api/axiosHelper";
+import { formatDate } from "@/api/formatDateHelpers";
 
 export default {
   components: {
@@ -90,11 +91,29 @@ export default {
 
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post(endpoints.comments, {
+        // Make the API call to post the comment
+        const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        this.fetchPosts();
+
+        // Extract the newly created comment from the API response
+        const newComment = response.data; // Assuming the API returns the newly created comment object
+
+        // Format the date and time of the new comment using formatDate function
+        newComment.date = formatDate(new Date(newComment.date)); // Adjust according to the date property returned by your API
+
+        // Update the posts array locally to include the new comment
+        const updatedPosts = this.posts.map((post) => {
+          if (post.id === postId) {
+            // Update the comments array of the post with the new comment
+            post.comments.unshift(newComment); // Add new comment to the top (assuming latest_comment is the most recent)
+          }
+          return post;
+        });
+
+        // Update the posts state with the updated posts array
+        this.posts = updatedPosts;
       } catch (error) {
         console.error("Error posting comment:", error);
       }
