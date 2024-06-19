@@ -111,7 +111,7 @@
 <script>
 import CommentModal from "./CommentModal.vue";
 import { mapGetters } from "vuex";
-import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance and endpoints
 import { formatDate } from "@/api/formatDateHelpers"; // Import the formatDate function
 
 export default {
@@ -186,7 +186,7 @@ export default {
         // Unlike the post
         try {
           if (post.like_id) {
-            await axiosInstance.delete(`${endpoints.unlike}${post.like_id}/`);
+            await axiosInstance.delete(`${endpoints.unlike}${post.like_id}`);
             post.liked = false;
             post.like_id = null;
           } else {
