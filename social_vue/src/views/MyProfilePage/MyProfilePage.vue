@@ -172,24 +172,18 @@ export default {
       this.loading = true;
 
       try {
-        const response = await axiosInstance.get(endpoints.myPosts, {
-          params: {
-            page: this.page,
-          },
-        });
+        const response = await axiosInstance.get(
+          `${endpoints.myPosts}?page=${this.page}`
+        );
 
-        const newPosts = response.data.results.map((post) => {
-          if (post.latest_comment) {
-            post.comments = [post.latest_comment];
-          } else {
-            post.comments = [];
-          }
-          return post;
-        });
+        const newPosts = response.data.results;
+
+        if (newPosts.length === 0 || response.data.next === null) {
+          this.hasMore = false;
+        }
 
         this.userPosts = [...this.userPosts, ...newPosts];
-        this.hasMore = Boolean(response.data.next);
-        this.page += 1;
+        this.page++;
       } catch (error) {
         console.error("Error fetching user's posts:", error);
       } finally {
@@ -218,16 +212,28 @@ export default {
     },
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post(endpoints.comments, {
+        const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        this.commentText = "";
-        this.fetchUserPosts(); // Reload posts after commenting
+
+        const newComment = response.data;
+        newComment.date_time_created = new Date(newComment.date_time_created);
+
+        const updatedPosts = this.userPosts.map((post) => {
+          if (post.id === postId) {
+            post.comments.unshift(newComment);
+          }
+          return post;
+        });
+
+        this.userPosts = updatedPosts;
+        this.commentText = ""; // Clear the input field
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
+
     handleScroll() {
       if (this.loading || !this.hasMore) return;
 

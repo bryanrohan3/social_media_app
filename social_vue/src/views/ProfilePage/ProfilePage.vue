@@ -182,21 +182,16 @@ export default {
     },
     async fetchUserPosts() {
       try {
-        const response = await axiosInstance.get(endpoints.myPosts);
-        const userPosts = response.data.map((post) => {
-          if (post.latest_comment) {
-            post.comments = [post.latest_comment]; // Assign the latest comment to the post's comments
-          } else {
-            post.comments = []; // Default to an empty array if no latest comment is present
-          }
-          return post;
-        });
+        const response = await axiosInstance.get(
+          `${endpoints.posts}?user_id=${this.user.id}`
+        );
 
-        this.userPosts = userPosts; // No need to use Promise.all since we're not dealing with async operations within the map
+        this.userPosts = response.data.results;
       } catch (error) {
         console.error("Error fetching user's posts:", error);
       }
     },
+
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
@@ -219,18 +214,28 @@ export default {
     },
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post(endpoints.comments, {
+        const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        // Clear the comment text area after posting
-        this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchUserPosts();
+
+        const newComment = response.data;
+        newComment.date_time_created = new Date(newComment.date_time_created);
+
+        const updatedPosts = this.userPosts.map((post) => {
+          if (post.id === postId) {
+            post.comments.unshift(newComment);
+          }
+          return post;
+        });
+
+        this.userPosts = updatedPosts;
+        this.commentText = ""; // Clear the input field
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
+
     goToFriendProfile(friendId) {
       this.$router.push({
         name: "profile",
