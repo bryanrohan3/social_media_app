@@ -1,8 +1,7 @@
 <template>
-  <div class="modal">
-    <div class="modal-content">
-      <span class="close" @click="$emit('close')">&times;</span>
-      <h2>{{ post.username }}'s Post</h2>
+  <BaseModal :show-modal="true" @close="handleClose">
+    <template v-slot:title>{{ post.username }}'s Post</template>
+    <div class="modal-body">
       <div v-if="comments.length">
         <ul class="comments-list">
           <li
@@ -29,16 +28,23 @@
         <p>No comments to display.</p>
       </div>
     </div>
-  </div>
+  </BaseModal>
 </template>
 
 <script>
+import BaseModal from "./BaseModal.vue";
 import { axiosInstance, endpoints } from "@/api/axiosHelper";
 import { formatDate } from "@/api/formatDateHelpers";
 
 export default {
+  components: {
+    BaseModal,
+  },
   props: {
-    post: Object,
+    post: {
+      type: Object,
+      required: true,
+    },
   },
   data() {
     return {
@@ -63,6 +69,10 @@ export default {
         );
         this.comments = []; // Handle error by setting comments to empty array
       }
+    },
+    handleClose() {
+      console.log("Close event received in CommentModal");
+      this.$emit("close"); // Emit close event to parent
     },
     formatDate,
   },

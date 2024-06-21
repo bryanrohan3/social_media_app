@@ -1,31 +1,12 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <!-- <svg
-          class="back-arrow"
-          xmlns="http://www.w3.org/2000/svg"
-          height="24px"
-          viewBox="0 -960 960 960"
-          width="24px"
-          fill="#000000"
-          @click="closeModal"
-        >
-          <path
-            d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"
-          />
-        </svg> -->
-        <img
-          src="@/assets/arrow_back.svg"
-          class="back-arrow"
-          @click="closeModal"
-        />
-        <div class="title-container">
-          <h2 class="title">Create new post</h2>
-        </div>
-        <button class="share-button" @click="createPost">Share</button>
-      </div>
-
+  <BaseModal
+    :show-modal="true"
+    @close="handleClose"
+    @action="createPost"
+    :show-action="true"
+  >
+    <template v-slot:title>Create new post</template>
+    <div class="modal-body">
       <div class="user-info">
         <img class="user-picture" src="@/assets/avatar.jpeg" alt="Avatar" />
         <span class="username">{{ userProfile.username }}</span>
@@ -75,14 +56,18 @@
         <span>Post Successful</span>
       </div>
     </div>
-  </div>
+  </BaseModal>
 </template>
 
 <script>
+import BaseModal from "./BaseModal.vue";
 import { mapGetters } from "vuex"; // Import mapGetters from Vuex
 import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import axiosInstance and endpoints
 
 export default {
+  components: {
+    BaseModal,
+  },
   data() {
     return {
       caption: "",
@@ -96,7 +81,7 @@ export default {
     }),
   },
   methods: {
-    closeModal() {
+    handleClose() {
       this.$emit("close");
     },
     async createPost() {
@@ -109,7 +94,7 @@ export default {
         this.success = true;
         setTimeout(() => {
           this.success = false;
-          this.closeModal();
+          this.handleClose();
         }, 2000); // Hide success message after 2 seconds
       } catch (error) {
         console.error("Error creating post:", error);
@@ -120,9 +105,6 @@ export default {
   },
 };
 </script>
-
-<!-- create a base modal -->
-<!-- v -->
 
 <style scoped>
 .modal-overlay {
