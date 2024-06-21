@@ -65,6 +65,8 @@
             :post-comment="postComment"
             class="post-content"
           />
+          <div v-if="loading" class="loading-indicator">Loading...</div>
+          <div v-if="!loading && !hasMore" class="end-of-feed">End of feed</div>
         </div>
         <div v-if="activeTab === 'friends'" class="tab-content">
           <input
@@ -114,14 +116,14 @@
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import SettingsModal from "@/components/SettingsModal.vue"; // Import SettingsModal
-import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
+import SettingsModal from "@/components/SettingsModal.vue";
 
 export default {
   components: {
     NavBar,
     Post,
-    SettingsModal, // Register SettingsModal
+    SettingsModal,
   },
   data() {
     return {
@@ -130,9 +132,12 @@ export default {
       friends: [],
       searchQuery: "",
       friendsCount: 0,
-      activeTab: "posts", // Set default tab to 'posts'
+      activeTab: "posts",
       commentText: "",
-      showSettingsModal: false, // Modal visibility state
+      loading: false,
+      page: 1,
+      hasMore: true,
+      showSettingsModal: false,
     };
   },
   computed: {
@@ -146,6 +151,10 @@ export default {
   },
   mounted() {
     this.fetchCurrentUser();
+    window.addEventListener("scroll", this.handleScroll);
+  },
+  destroyed() {
+    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
     async fetchCurrentUser() {
@@ -159,20 +168,32 @@ export default {
       }
     },
     async fetchUserPosts() {
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
+
       try {
-        const response = await axiosInstance.get(endpoints.myPosts);
-        const userPosts = response.data.map((post) => {
+        const response = await axiosInstance.get(endpoints.myPosts, {
+          params: {
+            page: this.page,
+          },
+        });
+
+        const newPosts = response.data.results.map((post) => {
           if (post.latest_comment) {
-            post.comments = [post.latest_comment]; // Assign the latest comment to the post's comments
+            post.comments = [post.latest_comment];
           } else {
-            post.comments = []; // Default to an empty array if no latest comment is present
+            post.comments = [];
           }
           return post;
         });
 
-        this.userPosts = userPosts; // No need to use Promise.all since we're not dealing with async operations within the map
+        this.userPosts = [...this.userPosts, ...newPosts];
+        this.hasMore = Boolean(response.data.next);
+        this.page += 1;
       } catch (error) {
         console.error("Error fetching user's posts:", error);
+      } finally {
+        this.loading = false;
       }
     },
     async fetchFriendsCount() {
@@ -183,21 +204,6 @@ export default {
         this.friendsCount = response.data.friends_count;
       } catch (error) {
         console.error("Error fetching friends count:", error);
-      }
-    },
-    async unfriend(friendId) {
-      try {
-        // Send the delete request to unfriend the user
-        await axiosInstance.delete(`${endpoints.unfriend}${friendId}/`);
-
-        // Update the UI by removing the friend from the DOM
-        // You can directly remove the friend from the local `this.friends` array
-        this.friends = this.friends.filter((friend) => friend.id !== friendId);
-
-        // Alternatively, if `this.friends` is not directly accessible or not up-to-date,
-        // you may emit an event or call a method that updates the friends list in the parent component.
-      } catch (error) {
-        console.error("Error unfriending:", error);
       }
     },
     async fetchFriends() {
@@ -216,13 +222,26 @@ export default {
           post: postId,
           text: commentText,
         });
-        // Clear the comment text area after posting
         this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchUserPosts();
+        this.fetchUserPosts(); // Reload posts after commenting
       } catch (error) {
         console.error("Error posting comment:", error);
       }
+    },
+    handleScroll() {
+      if (this.loading || !this.hasMore) return;
+
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop =
+        document.documentElement.scrollTop || document.body.scrollTop;
+      const clientHeight = window.innerHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        this.fetchUserPosts();
+      }
+    },
+    toggleSettingsModal() {
+      this.showSettingsModal = !this.showSettingsModal;
     },
     editProfile() {
       this.$router.push("/myprofile/edit");

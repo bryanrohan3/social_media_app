@@ -186,10 +186,16 @@ class PostViewSet(
 
     @action(detail=False, methods=['GET'])
     def my_posts(self, request):
-        # Get posts of the current authenticated user
         queryset = self.get_queryset().filter(user=request.user)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+
+        # Pagination
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(queryset, request)
+
+        serializer = self.get_serializer(paginated_posts, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=['GET'], url_path='friends_posts')
 
     @action(detail=False, methods=['GET'], url_path='friends_posts')
     def friends_posts(self, request):
@@ -409,6 +415,7 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         
         return Response({'friends_count': friends_count})
 
+
     def update(self, request, *args, **kwargs):
         # Updates the status of a friend request.
         instance = self.get_object()  # Get the friend request instance
@@ -448,6 +455,7 @@ class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             'sent_requests': sent_serializer.data
         })
 
+    
     @action(detail=True, methods=['get'])
     def friendship_status(self, request, pk=None):
         # pk is typically the user ID of the other user
