@@ -57,6 +57,8 @@
             :post-comment="postComment"
             class="post-content"
           />
+          <div v-if="loading" class="loading-indicator">Loading...</div>
+          <div v-if="!loading && !hasMore" class="end-of-feed">End of feed</div>
         </div>
         <div v-if="activeTab === 'friends'" class="tab-content">
           <input
@@ -93,7 +95,7 @@
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   components: {
@@ -107,21 +109,27 @@ export default {
       friends: [],
       searchQuery: "",
       friendsCount: 0,
-      activeTab: "posts", // Set default tab to 'posts'
+      activeTab: "posts",
       isFriend: false,
       friendRequestSent: false,
       friendRequestId: null,
-      currentUser: null, // To store the current logged in user
+      currentUser: null,
+      page: 1,
+      hasMore: true,
+      loading: false, // Add loading state to prevent concurrent requests
     };
   },
   computed: {
     ...mapGetters(["getAuthToken"]),
     filteredFriends() {
-      // Filter friends based on search query
       return this.friends.filter((friend) =>
         friend.username.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
     },
+  },
+  mounted() {
+    window.addEventListener("scroll", this.handleScroll);
+    this.fetchUserProfile();
   },
   watch: {
     "$route.params.id": {
@@ -151,8 +159,8 @@ export default {
         if (this.activeTab === "friends") {
           this.fetchFriends();
         }
-        this.fetchFriendshipStatus(); // Call fetchFriendshipStatus after fetching user profile
-        this.fetchCurrentUser(); // Fetch current logged in user
+        this.fetchFriendshipStatus();
+        this.fetchCurrentUser();
       } catch (error) {
         console.error("Error fetching user profile:", error);
       }
@@ -162,7 +170,6 @@ export default {
         const response = await axiosInstance.get(
           `${endpoints.friendshipStatus}${this.user.id}/friendship-status/`
         );
-        // Update isFriend based on the response status
         this.isFriend = response.data.status === "friends";
         if (response.data.status === "requested") {
           this.friendRequestSent = true;
@@ -181,17 +188,29 @@ export default {
       }
     },
     async fetchUserPosts() {
-      try {
-        const response = await axiosInstance.get(
-          `${endpoints.posts}?user_id=${this.user.id}`
-        );
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
 
-        this.userPosts = response.data.results;
+      try {
+        const endpoint = `${endpoints.posts}?user_id=${this.user.id}&page=${this.page}`;
+        console.log("Fetching posts from:", endpoint);
+
+        const response = await axiosInstance.get(endpoint);
+        const newPosts = response.data.results;
+
+        this.userPosts = [...this.userPosts, ...newPosts];
+
+        if (!response.data.next) {
+          this.hasMore = false;
+        }
+
+        this.page++;
       } catch (error) {
         console.error("Error fetching user's posts:", error);
+      } finally {
+        this.loading = false;
       }
     },
-
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
@@ -230,12 +249,10 @@ export default {
         });
 
         this.userPosts = updatedPosts;
-        this.commentText = ""; // Clear the input field
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
-
     goToFriendProfile(friendId) {
       this.$router.push({
         name: "profile",
@@ -266,6 +283,18 @@ export default {
         console.error("Error canceling friend request:", error);
       }
     },
+    handleScroll() {
+      if (this.loading || !this.hasMore) return;
+
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop =
+        document.documentElement.scrollTop || document.body.scrollTop;
+      const clientHeight = window.innerHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        this.fetchUserPosts();
+      }
+    },
   },
 };
 </script>
@@ -281,6 +310,7 @@ export default {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto; /* Center the content */
+  height: 80vh;
 }
 
 .post-content {
