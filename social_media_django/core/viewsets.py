@@ -14,6 +14,8 @@ from .helpers import get_user_friends  # Import the helper function
 from django.contrib.auth import login
 from rest_framework.authtoken.models import Token
 from django.http import Http404
+from rest_framework.pagination import PageNumberPagination
+
 
 
 def filter_blocked_objects(queryset, user):
@@ -145,6 +147,11 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         block.delete()
         return Response({'message': 'User unblocked successfully'}, status=status.HTTP_200_OK)
 
+class CustomPagination(PageNumberPagination):
+    page_size = 10  # Number of posts per page
+    page_size_query_param = 'page_size'
+    max_page_size = 1000  # Maximum number of posts per page
+    
 class PostViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -154,9 +161,10 @@ class PostViewSet(
     viewsets.GenericViewSet
 ):
     serializer_class = PostSerializer  # Commented out to use default serializer class
+    pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = Post.objects.all()
+        queryset = Post.objects.all().order_by('-date_time_created')  # Order by newest first
 
         queryset = filter_blocked_objects(queryset, self.request.user)
 
@@ -185,15 +193,23 @@ class PostViewSet(
 
     @action(detail=False, methods=['GET'], url_path='friends_posts')
     def friends_posts(self, request):
-        # Use the helper function to get friends of the current authenticated user
+        # Fetch friends of the user
         friends = get_user_friends(request.user)
 
-        # Get posts created by friends of the current authenticated user
+        # Filter posts to include only those made by friends
         posts = self.get_queryset().filter(user__in=friends)
+
+        # Apply infinite scroll pagination
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(posts, request)
+
+        if paginated_posts is not None:
+            serializer = self.get_serializer(paginated_posts, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['GET'], url_path='likes')
     def post_likes(self, request, pk=None):
         post = self.get_object()
@@ -201,11 +217,13 @@ class PostViewSet(
         likes = filter_blocked_objects(likes, self.request.user)
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
-    
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context.update({"request": self.request})
         return context
+
+
 
 
 class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin):

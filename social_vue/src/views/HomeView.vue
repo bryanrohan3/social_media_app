@@ -1,8 +1,15 @@
 <template>
   <div>
     <NavBar />
-    <div class="content">
-      <Post :posts="posts" :post-comment="postComment" />
+    <div class="content" @scroll="handleScroll">
+      <Post
+        :posts="posts"
+        :post-comment="postComment"
+        :toggle-like="toggleLike"
+        :view-more-comments="viewMoreComments"
+      />
+      <div v-if="loading" class="loading">Loading...</div>
+      <div v-if="!hasMore" class="end-of-feed">Bottom of feed</div>
     </div>
     <a
       href="/#"
@@ -27,7 +34,6 @@ import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
 import { axiosInstance, endpoints } from "@/api/axiosHelper";
-import { formatDate } from "@/api/formatDateHelpers";
 
 export default {
   components: {
@@ -37,6 +43,9 @@ export default {
   data() {
     return {
       posts: [],
+      loading: false,
+      page: 1,
+      hasMore: true,
     };
   },
   computed: {
@@ -47,84 +56,97 @@ export default {
   },
   mounted() {
     this.fetchPosts();
+    window.addEventListener("scroll", this.handleScroll);
+  },
+  beforeDestroy() {
+    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
     async fetchPosts() {
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
+
       try {
         const response = await axiosInstance.get(
-          endpoints.posts + "friends_posts/"
+          `${endpoints.posts}friends_posts/?page=${this.page}`
         );
 
-        // Directly use the response data without additional API calls for comments
-        const posts = response.data.map((post) => {
-          if (post.latest_comment) {
-            post.comments = [post.latest_comment]; // Assign the latest comment to the post's comments
-          } else {
-            post.comments = []; // Default to an empty array if no latest comment is present
-          }
-          return post;
-        });
+        const newPosts = response.data.results;
 
-        this.posts = posts; // No need to use Promise.all since we're not dealing with async operations within the map
+        if (newPosts.length === 0 || response.data.next === null) {
+          this.hasMore = false;
+        }
+
+        this.posts = [...this.posts, ...newPosts];
+        this.page++;
       } catch (error) {
         console.error("Error fetching posts:", error);
+      } finally {
+        this.loading = false;
       }
     },
+    handleScroll() {
+      if (this.loading || !this.hasMore) return;
 
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 5) {
+        this.fetchPosts();
+      }
+    },
     async likePost(postId) {
       try {
         await axiosInstance.post(`${endpoints.likes}?post=${postId}`);
-        this.fetchPosts();
+        this.updatePostLike(postId, true);
       } catch (error) {
         console.error("Error liking post:", error);
       }
     },
-
     async unlikePost(postId) {
       try {
         await axiosInstance.delete(`${endpoints.likes}?like=${postId}`);
-        this.fetchPosts();
+        this.updatePostLike(postId, false);
       } catch (error) {
         console.error("Error unliking post:", error);
       }
     },
-
+    updatePostLike(postId, liked) {
+      const updatedPosts = this.posts.map((post) => {
+        if (post.id === postId) {
+          post.liked = liked;
+          post.like_count += liked ? 1 : -1;
+        }
+        return post;
+      });
+      this.posts = updatedPosts;
+    },
     async postComment(postId, commentText) {
       try {
-        // Make the API call to post the comment
         const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
 
-        // Extract the newly created comment from the API response
-        const newComment = response.data; // Assuming the API returns the newly created comment object
+        const newComment = response.data;
+        newComment.date_time_created = new Date(newComment.date_time_created);
 
-        // Format the date and time of the new comment using formatDate function
-        newComment.date = formatDate(new Date(newComment.date)); // Adjust according to the date property returned by your API
-
-        // Update the posts array locally to include the new comment
         const updatedPosts = this.posts.map((post) => {
           if (post.id === postId) {
-            // Update the comments array of the post with the new comment
-            post.comments.unshift(newComment); // Add new comment to the top (assuming latest_comment is the most recent)
+            post.comments.unshift(newComment);
           }
           return post;
         });
 
-        // Update the posts state with the updated posts array
         this.posts = updatedPosts;
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
-
     async viewMoreComments(post) {
-      // Implement the logic here to show more comments for the post
       console.log("View more comments for post:", post);
-      // Example: You might want to expand a modal or toggle a state
     },
-
     async toggleLike(post) {
       try {
         if (post.liked) {
@@ -145,6 +167,14 @@ export default {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto; /* Center the content */
+  height: 80vh;
+}
+
+.end-of-feed {
+  padding: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #b2b2b2;
 }
 
 .user-info-top-right {

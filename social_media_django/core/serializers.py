@@ -35,15 +35,20 @@ class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
 
+
+from rest_framework import serializers
+from .models import Post, Comment
+
 class PostSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.id')
     username = serializers.CharField(source='user.username', read_only=True)
     liked = serializers.SerializerMethodField()
     like_id = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'caption', 'date_time_created', 'username', 'user', 'is_active', 'liked', 'like_id']
+        fields = ['id', 'caption', 'date_time_created', 'username', 'user', 'is_active', 'liked', 'like_id', 'comments']
 
     def get_liked(self, obj):
         request = self.context.get('request')
@@ -58,6 +63,12 @@ class PostSerializer(serializers.ModelSerializer):
             return like.id if like else None
         return None
 
+    def get_comments(self, obj):
+        latest_comment = Comment.objects.filter(post=obj).order_by('-date_time_created').first()
+        if latest_comment:
+            return ShortCommentSerializer([latest_comment], many=True, context=self.context).data
+        return []
+    
 class LikeSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
     username = serializers.CharField(source='user.username', read_only=True)  # Include the username
@@ -102,6 +113,7 @@ class ShortCommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ['id', 'post', 'text', 'date_time_created', 'username']
 
+
 class FriendRequestSerializer(serializers.ModelSerializer):
     from_user_username = serializers.SerializerMethodField()  # Include from_user_username field
     to_user_username = serializers.SerializerMethodField()
@@ -124,8 +136,6 @@ class FriendRequestSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['from_user'] = self.context['request'].user
         return super().create(validated_data)
-
-
 
 
 class BlockSerializer(serializers.ModelSerializer):

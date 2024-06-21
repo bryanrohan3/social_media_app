@@ -6,14 +6,10 @@
         <div class="user-info">
           <p class="username">{{ post.username }}</p>
           <p class="date">{{ formatDate(post.date_time_created) }}</p>
-          <!-- Updated line to use formatDate -->
         </div>
       </div>
       <p class="caption">{{ post.caption }}</p>
-
-      <!-- Like and Comment buttons -->
       <div class="button-wrapper">
-        <!-- Thumbs up (Like) button -->
         <svg
           @click="toggleLike(post)"
           class="like-icon"
@@ -27,7 +23,6 @@
             d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L794-168q-9 20-30 34t-44 14Zm-360-80h360l120-280v-80H480l54-220-174 174v406Zm0-406v406-406Zm-80-34v80H160v360h120v80H80v-520h200Z"
           />
         </svg>
-        <!-- Comment button -->
         <svg
           @click="openComment(post)"
           class="comment-icon"
@@ -45,9 +40,8 @@
 
       <div class="border-bottom-divider"></div>
 
-      <!-- Comment section -->
       <div class="comment-section">
-        <div v-if="post.comments && post.comments.length" class="comments">
+        <div v-if="post.comments && post.comments.length > 0" class="comments">
           <button class="viewMoreComments" @click="viewMoreComments(post)">
             View more comments
           </button>
@@ -69,7 +63,6 @@
                 <span class="comment-date">{{
                   formatDate(comment.date_time_created)
                 }}</span>
-                <!-- Updated line to use formatDate -->
               </div>
             </li>
           </ul>
@@ -82,7 +75,6 @@
             placeholder="Write a comment..."
             :id="'comment-input-' + post.id"
           ></textarea>
-          <!-- SVG icon for sending comment -->
           <svg
             v-if="post.commentText"
             @click="postComment(post.id, post.commentText)"
@@ -121,21 +113,18 @@ export default {
   computed: {
     ...mapGetters(["getAuthToken"]),
     sortedPosts() {
-      return this.posts
-        .slice()
-        .sort(
-          (a, b) =>
-            new Date(b.date_time_created) - new Date(a.date_time_created)
-        );
+      // Return posts as they are received from the backend
+      return this.posts || [];
     },
   },
+
   created() {
     this.postsData = this.sortPosts(this.posts);
   },
   props: {
     posts: {
       type: Array,
-      required: true,
+      default: () => [],
     },
     postComment: {
       type: Function,
