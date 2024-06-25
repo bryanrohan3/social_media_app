@@ -10,3 +10,4 @@ package-lock.json
 
 social_media_django/social_media_django/__pycache__/*.pyc
 
+social_media_django/core/__pycache__/models.cpython-310.pyc
