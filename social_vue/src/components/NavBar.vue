@@ -24,14 +24,14 @@
         <a>Create</a>
       </div>
 
-      <router-link to="/friend-requests" exact>
+      <router-link to="/friend-requests">
         <div class="nav-item">
           <img src="@/assets/friends.svg" class="icon" />
           <a>Friends</a>
         </div>
       </router-link>
 
-      <router-link to="/myprofile" exact>
+      <router-link :to="`/profile/${userProfile.id}`">
         <div class="nav-item">
           <img src="@/assets/account_profile.svg" class="icon" />
           Profile
@@ -109,7 +109,7 @@ export default {
   computed: {
     ...mapGetters(["getUserProfile", "getAuthToken"]),
     userProfile() {
-      return this.getUserProfile;
+      return this.getUserProfile || {};
     },
   },
   components: {
@@ -187,30 +187,22 @@ body {
   font-weight: bold;
 }
 
-.home {
-  display: flex;
-  height: 100vh;
-}
-
 .navbar-wrapper {
-  position: relative;
   height: 100%;
+  overflow: hidden;
+  display: flex;
 }
 
 .navbar {
   width: 200px; /* Adjust width as needed */
   background-color: #ffffff; /* Example background color */
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
   padding: 20px;
   transition: width 0.5s;
   overflow: hidden;
-  border-right: 1px solid #e9e9e5;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border: 1px solid #ccc;
 }
 
 .nav-item {
@@ -423,7 +415,6 @@ table {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  border: 1px solid gray;
 }
 
 .user-details {
