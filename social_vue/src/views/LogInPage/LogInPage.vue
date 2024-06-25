@@ -86,6 +86,8 @@ export default {
           const token = response.data.token;
           const user = response.data.user;
 
+          console.log("Token received:", token); // Log token received
+
           // Store token and user in Vuex
           this.setAuthToken(token);
           this.setUserProfile(user);
@@ -111,7 +113,7 @@ export default {
 <style>
 html,
 body {
-  height: 100%;
+  height: 80vh;
   margin: 0;
   padding: 0;
   background-color: #ffffff;
@@ -126,6 +128,7 @@ body {
   background-color: #fff;
   border-radius: 20px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin-top: 100px;
 }
 
 .forgot-password-link {
