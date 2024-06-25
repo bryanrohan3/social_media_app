@@ -1,7 +1,6 @@
 <template>
-  <div>
-    <NavBar />
-    <div class="content" @scroll="handleScroll">
+  <div class="page-container" @scroll="handleScroll">
+    <div class="content" ref="content">
       <Post
         :posts="posts"
         :post-comment="postComment"
@@ -56,9 +55,11 @@ export default {
   },
   mounted() {
     this.fetchPosts();
+    // Add scroll listener to the window
     window.addEventListener("scroll", this.handleScroll);
   },
   beforeDestroy() {
+    // Remove scroll listener from the window
     window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
@@ -67,8 +68,18 @@ export default {
       this.loading = true;
 
       try {
+        const token = this.$store.getters.getAuthToken;
+        if (!token) {
+          throw new Error("User not logged in");
+        }
+
         const response = await axiosInstance.get(
-          `${endpoints.posts}friends_posts/?page=${this.page}`
+          `${endpoints.posts}friends_posts/?page=${this.page}`,
+          {
+            headers: {
+              Authorization: `Token ${token}`,
+            },
+          }
         );
 
         const newPosts = response.data.results;
@@ -81,18 +92,22 @@ export default {
         this.page++;
       } catch (error) {
         console.error("Error fetching posts:", error);
+        // Handle specific error messages or show a message to the user
       } finally {
         this.loading = false;
       }
     },
-    handleScroll() {
-      if (this.loading || !this.hasMore) return;
 
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = document.documentElement.scrollTop;
-      const clientHeight = window.innerHeight;
+    handleScroll(event) {
+      const container = event.target;
+      const scrollHeight = container.scrollHeight;
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
 
-      if (scrollTop + clientHeight >= scrollHeight - 5) {
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      const threshold = 0.1 * clientHeight;
+
+      if (distanceFromBottom <= threshold) {
         this.fetchPosts();
       }
     },
@@ -163,11 +178,16 @@ export default {
 </script>
 
 <style>
+.page-container {
+  height: 100vh;
+  overflow-y: auto;
+}
+
 .content {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto; /* Center the content */
-  height: 80vh;
+  padding-top: 50px;
 }
 
 .end-of-feed {

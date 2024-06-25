@@ -394,7 +394,7 @@ textarea:active {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-left: 200px;
+  margin-left: 100px;
   z-index: 1; /* Ensure the post container is below the modal */
 }
 
