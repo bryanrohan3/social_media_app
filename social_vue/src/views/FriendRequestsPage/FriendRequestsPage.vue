@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper">
-    <NavBar />
     <div class="content">
       <div class="centre-content">
         <h1 class="title">Friend Requests</h1>
@@ -124,6 +123,7 @@ export default {
   margin: 0 auto; /* Center the content */
   display: flex;
   justify-content: center; /* Center the content horizontally */
+  padding-top: 50px;
 }
 
 .title {

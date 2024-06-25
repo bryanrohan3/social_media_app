@@ -1,6 +1,5 @@
 <template>
   <div class="edit-profile-wrapper">
-    <NavBar />
     <div class="content">
       <h2 class="title">Edit Profile</h2>
       <div v-if="userLoaded">
