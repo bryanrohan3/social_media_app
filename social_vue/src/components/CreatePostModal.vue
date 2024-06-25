@@ -1,26 +1,12 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <svg
-          class="back-arrow"
-          xmlns="http://www.w3.org/2000/svg"
-          height="24px"
-          viewBox="0 -960 960 960"
-          width="24px"
-          fill="#000000"
-          @click="closeModal"
-        >
-          <path
-            d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"
-          />
-        </svg>
-        <div class="title-container">
-          <h2 class="title">Create new post</h2>
-        </div>
-        <button class="share-button" @click="createPost">Share</button>
-      </div>
-
+  <BaseModal
+    :show-modal="true"
+    @close="handleClose"
+    @action="createPost"
+    :show-action="true"
+  >
+    <template v-slot:title>Create new post</template>
+    <div class="modal-body">
       <div class="user-info">
         <img class="user-picture" src="@/assets/avatar.jpeg" alt="Avatar" />
         <span class="username">{{ userProfile.username }}</span>
@@ -54,21 +40,6 @@
         </div>
       </form>
 
-      <!-- Loading Spinner
-      <div v-if="loading" class="loading-spinner">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="24px"
-          viewBox="0 -960 960 960"
-          width="24px"
-          fill="#000000"
-        >
-          <path
-            d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-155.5t86-127Q252-817 325-848.5T480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480-80Z"
-          />
-        </svg>
-      </div> -->
-
       <!-- Success Message -->
       <div v-if="success" class="success-message">
         <svg
@@ -85,14 +56,18 @@
         <span>Post Successful</span>
       </div>
     </div>
-  </div>
+  </BaseModal>
 </template>
 
 <script>
+import BaseModal from "./BaseModal.vue";
 import { mapGetters } from "vuex"; // Import mapGetters from Vuex
-import axiosInstance from "@/api/axiosHelper";
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import axiosInstance and endpoints
 
 export default {
+  components: {
+    BaseModal,
+  },
   data() {
     return {
       caption: "",
@@ -101,30 +76,25 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["getUserProfile"]), // Map the getUserProfile getter
-    userProfile() {
-      return this.getUserProfile;
-    },
+    ...mapGetters({
+      userProfile: "getUserProfile", // key: keyFromStore
+    }),
   },
   methods: {
-    closeModal() {
+    handleClose() {
       this.$emit("close");
     },
     async createPost() {
       this.loading = true;
       this.success = false;
       try {
-        const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/api/posts/",
-          {
-            caption: this.caption,
-          }
-        );
-        console.log("Post created:", response.data);
+        const response = await axiosInstance.post(endpoints.posts, {
+          caption: this.caption,
+        });
         this.success = true;
         setTimeout(() => {
           this.success = false;
-          this.closeModal();
+          this.handleClose();
         }, 2000); // Hide success message after 2 seconds
       } catch (error) {
         console.error("Error creating post:", error);

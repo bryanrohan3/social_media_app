@@ -55,8 +55,8 @@
 </template>
 
 <script>
-import axios from "axios";
 import { mapMutations } from "vuex";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   data() {
@@ -80,8 +80,8 @@ export default {
       }
 
       try {
-        // Sign up the user
-        const response = await axios.post("http://localhost:8000/api/users/", {
+        // Sign up the user using axiosInstance and endpoints
+        const response = await axiosInstance.post(endpoints.signup, {
           username: this.username,
           first_name: this.firstName,
           last_name: this.lastName,
@@ -90,13 +90,10 @@ export default {
         });
 
         // Log in the user immediately after signup
-        const loginResponse = await axios.post(
-          "http://localhost:8000/api/users/login/",
-          {
-            username: this.username,
-            password: this.password,
-          }
-        );
+        const loginResponse = await axiosInstance.post(endpoints.login, {
+          username: this.username,
+          password: this.password,
+        });
 
         // Retrieve the authentication token and user profile
         const token = loginResponse.data.token;
@@ -127,8 +124,6 @@ body {
   margin-bottom: 200px;
   padding: 0;
   background-color: #f9f9fd;
-  background-image: radial-gradient(#e9e9e5 1.85px, transparent 1.85px),
-    radial-gradient(#e9e9e5 1.85px, #f9f9fd 1.85px);
   background-size: 74px 74px;
   background-position: 0 0, 37px 37px;
 }

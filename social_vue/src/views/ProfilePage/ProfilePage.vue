@@ -1,6 +1,10 @@
 <template>
-  <div class="wrapper">
-    <NavBar />
+  <div class="wrapper" @scroll="handleScroll">
+    <SettingsModal
+      v-if="showSettingsModal && isCurrentUser"
+      :showModal="showSettingsModal"
+      @close="toggleSettingsModal"
+    />
     <div class="content">
       <div class="profile-page" v-if="user">
         <!-- Profile header -->
@@ -11,23 +15,35 @@
           <div class="profile-info">
             <div class="info-top">
               <h1 class="username">{{ user.username }}</h1>
-              <button
-                v-if="isFriend"
-                class="friend-button"
-                @click="removeFriend"
-              >
-                Friends
-              </button>
-              <button
-                v-else-if="friendRequestSent"
-                class="friend-button"
-                @click="cancelFriendRequest"
-              >
-                Cancel
-              </button>
-              <button v-else class="friend-button" @click="addFriend">
-                Add Friend
-              </button>
+              <div v-if="isCurrentUser" class="setting-edit">
+                <button @click="editProfile" class="edit-profile-button">
+                  Edit Profile
+                </button>
+                <img
+                  src="@/assets/settings.svg"
+                  style="cursor: pointer"
+                  @click="toggleSettingsModal"
+                />
+              </div>
+              <div v-else>
+                <button
+                  v-if="isFriend"
+                  class="friend-button"
+                  @click="removeFriend"
+                >
+                  Friends
+                </button>
+                <button
+                  v-else-if="friendRequestSent"
+                  class="friend-button"
+                  @click="cancelFriendRequest"
+                >
+                  Cancel
+                </button>
+                <button v-else class="friend-button" @click="addFriend">
+                  Add Friend
+                </button>
+              </div>
             </div>
             <p class="name">{{ user.first_name }} {{ user.last_name }}</p>
             <p class="email">Friends · {{ friendsCount }}</p>
@@ -57,6 +73,8 @@
             :post-comment="postComment"
             class="post-content"
           />
+          <div v-if="loading" class="loading-indicator">Loading...</div>
+          <div v-if="!loading && !hasMore" class="end-of-feed">End of feed</div>
         </div>
         <div v-if="activeTab === 'friends'" class="tab-content">
           <input
@@ -82,6 +100,23 @@
                 {{ friend.first_name }} {{ friend.last_name }}
               </p>
             </div>
+            <button
+              v-if="isCurrentUser"
+              @click.stop="unfriend(friend.id)"
+              class="unfriend-button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="#c70000"
+              >
+                <path
+                  d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -91,14 +126,14 @@
 
 <script>
 import { mapGetters } from "vuex";
-import NavBar from "@/components/NavBar.vue";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 import Post from "@/components/Post.vue";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import SettingsModal from "@/components/SettingsModal.vue";
 
 export default {
   components: {
-    NavBar,
     Post,
+    SettingsModal,
   },
   data() {
     return {
@@ -107,21 +142,32 @@ export default {
       friends: [],
       searchQuery: "",
       friendsCount: 0,
-      activeTab: "posts", // Set default tab to 'posts'
+      activeTab: "posts",
+      loading: false,
+      page: 1,
+      hasMore: true,
+      showSettingsModal: false,
       isFriend: false,
       friendRequestSent: false,
       friendRequestId: null,
-      currentUser: null, // To store the current logged in user
+      currentUser: null,
     };
   },
   computed: {
     ...mapGetters(["getAuthToken"]),
     filteredFriends() {
-      // Filter friends based on search query
       return this.friends.filter((friend) =>
         friend.username.toLowerCase().includes(this.searchQuery.toLowerCase())
       );
     },
+    isCurrentUser() {
+      return this.currentUser && this.currentUser.id === this.user.id;
+    },
+  },
+  mounted() {
+    window.addEventListener("scroll", this.handleScroll);
+    this.fetchCurrentUser();
+    this.fetchUserProfile();
   },
   watch: {
     "$route.params.id": {
@@ -142,27 +188,42 @@ export default {
   methods: {
     async fetchUserProfile() {
       try {
-        const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/users/${this.$route.params.id}/info/`
-        );
-        this.user = response.data;
-        this.fetchFriendsCount();
-        this.fetchUserPosts();
+        const [userInfoResponse, friendsCountResponse] = await Promise.all([
+          axiosInstance.get(
+            `${endpoints.userProfile}${this.$route.params.id}/info/`
+          ),
+          axiosInstance.get(
+            `${endpoints.friendsCount}?user_id=${this.$route.params.id}`
+          ),
+        ]);
+
+        this.user = userInfoResponse.data;
+        this.friendsCount = friendsCountResponse.data.friends_count;
+        this.resetUserPosts(); // Reset userPosts when fetching new profile
+
         if (this.activeTab === "friends") {
           this.fetchFriends();
         }
-        this.fetchFriendshipStatus(); // Call fetchFriendshipStatus after fetching user profile
-        this.fetchCurrentUser(); // Fetch current logged in user
+
+        if (!this.isCurrentUser) {
+          this.fetchFriendshipStatus();
+        }
       } catch (error) {
         console.error("Error fetching user profile:", error);
       }
     },
+
+    resetUserPosts() {
+      this.userPosts = [];
+      this.page = 1;
+      this.hasMore = true;
+      this.fetchUserPosts();
+    },
     async fetchFriendshipStatus() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/${this.user.id}/friendship-status/`
+          `${endpoints.friendshipStatus}${this.user.id}/friendship-status/`
         );
-        // Update isFriend based on the response status
         this.isFriend = response.data.status === "friends";
         if (response.data.status === "requested") {
           this.friendRequestSent = true;
@@ -174,46 +235,43 @@ export default {
     },
     async fetchCurrentUser() {
       try {
-        const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/users/current/"
-        );
+        const response = await axiosInstance.get(endpoints.currentUser);
         this.currentUser = response.data;
       } catch (error) {
         console.error("Error fetching current user data:", error);
       }
     },
     async fetchUserPosts() {
-      try {
-        const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/posts/?user_id=${this.user.id}`
-        );
-        const userPosts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axiosInstance.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
-            );
-            post.comments = commentsResponse.data;
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = [];
-          }
-          return post;
-        });
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
 
-        this.userPosts = await Promise.all(userPosts);
+      try {
+        const endpoint = this.isCurrentUser
+          ? `${endpoints.myPosts}?page=${this.page}`
+          : `${endpoints.posts}?user_id=${this.user.id}&page=${this.page}`;
+
+        const response = await axiosInstance.get(endpoint);
+        const newPosts = response.data.results;
+
+        this.userPosts = [...this.userPosts, ...newPosts];
+
+        if (!response.data.next) {
+          this.hasMore = false;
+        }
+
+        this.page++;
       } catch (error) {
         console.error("Error fetching user's posts:", error);
+      } finally {
+        this.loading = false;
       }
     },
     async fetchFriendsCount() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+          `${endpoints.friendsCount}?user_id=${this.user.id}`
         );
-        this.friendsCount = response.data.length;
+        this.friendsCount = response.data.friends_count;
       } catch (error) {
         console.error("Error fetching friends count:", error);
       }
@@ -221,7 +279,7 @@ export default {
     async fetchFriends() {
       try {
         const response = await axiosInstance.get(
-          `http://127.0.0.1:8000/api/friend-requests/friends/?user_id=${this.user.id}`
+          `${endpoints.friends}?user_id=${this.user.id}`
         );
         this.friends = response.data;
       } catch (error) {
@@ -230,44 +288,44 @@ export default {
     },
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+        const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        // Clear the comment text area after posting
-        this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchUserPosts();
+
+        const newComment = response.data;
+        newComment.date_time_created = new Date(newComment.date_time_created);
+
+        const updatedPosts = this.userPosts.map((post) => {
+          if (post.id === postId) {
+            post.comments.unshift(newComment);
+          }
+          return post;
+        });
+
+        this.userPosts = updatedPosts;
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
-    goToFriendProfile(friendId) {
-      this.$router.push({
-        name: "profile",
-        params: { id: friendId },
-      });
-    },
-    async addFriend() {
-      try {
-        await this.fetchCurrentUser();
-        const response = await axiosInstance.post(
-          "http://127.0.0.1:8000/api/friend-requests/",
-          {
-            to_user: this.user.id,
-            from_user: this.currentUser.id,
-          }
-        );
-        this.friendRequestSent = true;
-        this.friendRequestId = response.data.id;
-      } catch (error) {
-        console.error("Error sending friend request:", error);
+    handleScroll(event) {
+      const container = event.target;
+      const scrollHeight = container.scrollHeight;
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
+
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      const threshold = 0.1 * clientHeight;
+
+      if (distanceFromBottom <= threshold) {
+        this.fetchUserPosts();
       }
     },
+
     async cancelFriendRequest() {
       try {
         await axiosInstance.delete(
-          `http://127.0.0.1:8000/api/friend-requests/${this.friendRequestId}/`
+          `${endpoints.cancelFriendRequest}${this.friendRequestId}/`
         );
         this.friendRequestSent = false;
         this.friendRequestId = null;
@@ -275,22 +333,55 @@ export default {
         console.error("Error canceling friend request:", error);
       }
     },
+    async removeFriend() {
+      try {
+        await axiosInstance.delete(`${endpoints.removeFriend}${this.user.id}/`);
+        this.isFriend = false;
+      } catch (error) {
+        console.error("Error removing friend:", error);
+      }
+    },
+    async unfriend(friendId) {
+      try {
+        await axiosInstance.delete(`${endpoints.removeFriend}${friendId}/`);
+        this.friends = this.friends.filter((friend) => friend.id !== friendId);
+      } catch (error) {
+        console.error("Error unfriending:", error);
+      }
+    },
+    toggleSettingsModal() {
+      this.showSettingsModal = !this.showSettingsModal;
+    },
+    goToFriendProfile(friendId) {
+      this.$router.push({ name: "profile", params: { id: friendId } });
+    },
+    editProfile() {
+      console.log("Navigating to edit profile page...");
+      const userId = this.$route.params.id;
+      console.log("User ID:", userId);
+      this.$router.push({ name: "editProfile", params: { id: userId } });
+    },
+  },
+  beforeDestroy() {
+    window.removeEventListener("scroll", this.handleScroll);
   },
 };
 </script>
 
 <style scoped>
-/* Reuse styles from MyProfilePage or add any additional styles if needed */
 .wrapper {
   display: flex;
   height: 100vh; /* Set wrapper height to full viewport height */
   position: relative;
+  overflow-y: auto;
 }
 
 .content {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto; /* Center the content */
+  height: 80vh;
+  padding-top: 50px;
 }
 
 .post-content {
@@ -303,7 +394,6 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-left: 100px;
 }
 
 .profile-header {
@@ -316,6 +406,13 @@ export default {
   height: 150px;
   border-radius: 50%;
   margin-right: 20px;
+}
+
+.setting-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .profile-info {
@@ -427,7 +524,6 @@ export default {
 }
 
 /* Friend list */
-
 .tab-content {
   margin-top: 20px;
 }
@@ -508,5 +604,43 @@ export default {
 
 .friend-button:hover {
   background-color: #cfcfcf;
+}
+
+.edit-profile-button {
+  padding: 8px 18px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #efefef;
+  color: #363636;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  margin-left: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.edit-profile-button:hover {
+  background-color: #cfcfcf;
+}
+
+.unfriend-button {
+  margin-left: auto; /* Align the unfriend button to the right */
+  padding: 8px 18px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #fff; /* Red color for the unfriend button */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  width: 100px;
+}
+
+.unfriend-button:hover {
+  background-color: #f0f0f0; /* Darker red color on hover */
+  cursor: pointer;
 }
 </style>

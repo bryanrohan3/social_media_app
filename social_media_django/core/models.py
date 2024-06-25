@@ -18,6 +18,7 @@ class Like(models.Model):  # Define the Like model
     def __str__(self):  # String representation of the Like object
         return f'{self.user.username} liked {self.post}'
 
+
 class Comment(models.Model):  # Define the Comment model
     is_active = models.BooleanField(default=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)  # ForeignKey to link to the Post model

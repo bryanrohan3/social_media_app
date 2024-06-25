@@ -1,6 +1,5 @@
 <template>
   <div class="edit-profile-wrapper">
-    <NavBar />
     <div class="content">
       <h2 class="title">Edit Profile</h2>
       <div v-if="userLoaded">
@@ -63,7 +62,7 @@
 <script>
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance
 
 export default {
   components: {
@@ -86,9 +85,7 @@ export default {
   methods: {
     async fetchCurrentUser() {
       try {
-        const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/users/current/"
-        );
+        const response = await axiosInstance.get(endpoints.currentUser);
         this.user = { ...response.data };
         this.originalUser = { ...response.data };
         this.userLoaded = true;
@@ -111,7 +108,7 @@ export default {
             last_name: this.user.last_name,
           };
           await axiosInstance.patch(
-            `http://127.0.0.1:8000/api/users/${this.user.id}/`,
+            `${endpoints.updateUser}${this.user.id}/`,
             updatedUser
           );
           this.$router.push("/myprofile");
@@ -174,7 +171,6 @@ button:hover:not(.disabled) {
   background-color: #1e1e1e;
 }
 
-/* Add styles here */
 .title {
   font-size: 20px;
   margin-left: auto; /* This will align the title with the right edge */
@@ -195,7 +191,6 @@ button:hover:not(.disabled) {
   margin: 8px 0;
 }
 
-/* Add styles here */
 .user-info {
   display: flex;
   align-items: center;

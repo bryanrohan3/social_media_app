@@ -14,8 +14,7 @@ from .helpers import get_user_friends  # Import the helper function
 from django.contrib.auth import login
 from rest_framework.authtoken.models import Token
 from django.http import Http404
-
-
+from rest_framework.pagination import PageNumberPagination
 
 
 
@@ -72,7 +71,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
-    
+
     
     @action(detail=True, methods=['get'])
     def info(self, request, pk=None):
@@ -97,27 +96,10 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
     # Creating A User
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data) # Initialize UserSerializer with request data
-        # print(serializer)
         serializer.is_valid(raise_exception=True) # Validate serializer data
         user = serializer.save() # Save user using serializer
         return Response({'user': serializer.data}, status=status.HTTP_201_CREATED) # Return response with user data
 
-    # LogIn
-    # @action(detail=False, methods=['POST'], permission_classes=[])
-    # def login(self, request):
-    #     serializer = self.get_serializer(data=request.data) # Initialize UserLoginSerializer with request data
-    #     serializer.is_valid(raise_exception=True) # Validate serializer data
-        
-    #     user = authenticate(username=serializer.validated_data['username'], password=serializer.validated_data['password']) # Authenticate user with provided username and password
-    #     print(user)
-    #     # If authentication is successful
-    #     if user is not None:
-    #         # Return response with success message and user data
-    #         return Response({'message': 'Login successful', 'user': UserSerializer(user).data})
-    #     else:
-    #         # Return response with error message for invalid credentials
-    #         return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST) 
-    
     @action(detail=False, methods=['POST'], permission_classes=[])
     def login(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -130,16 +112,13 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
             
             # Generate or retrieve the authentication token for the user
             token, created = Token.objects.get_or_create(user=user)
-            # print(request, user)
-            # print(token)
             
             # Return response with success message, user data, and authentication token
             return Response({'message': 'Login successful', 'user': UserSerializer(user).data, 'token': token.key})
         else:
             return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST)
 
-        
-    # BLOCKING USERS
+    # Blocking Users
     @action(detail=True, methods=['POST'], url_name='block')
     def block_user(self, request, pk=None):
         blocked_user = get_object_or_404(User, pk=pk) # Retrieve the user based on the provided pk
@@ -168,20 +147,11 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         block.delete()
         return Response({'message': 'User unblocked successfully'}, status=status.HTTP_200_OK)
 
-
-# TODO: Remove the destroy mixin
-# Alternatively, override the destroy method to soft delete the user in either the ViewSet or the Serializer (prob viewset is better)
-# 2 Thoughts:
-# Either, remove Retrieve Model Mixin because we never use it.
-# Or
-# Use seperate serializers for Retrieve and List and pick a point of difference for them
-# An example of when this is good: 
-# A Post has 50 likes. On the feed, you only want to show the number of likes, eg: "Hello World" -> "This post has 50 likes" 
-# But when you click on the post, you want to see the users who liked the post
-# TODO: Implement "Has been edited"
-# Multiple ways to do this:
-# 1. Add a field to the model that is a timestamp of the last edit -> In serializer, if this field exists, make a custom field that says "Has been edited" or is a boolean
-# 2. Add a field to the model that is a boolean that is set to true when the post is edited -> Set to true in update
+class CustomPagination(PageNumberPagination):
+    page_size = 10  # Number of posts per page
+    page_size_query_param = 'page_size'
+    max_page_size = 1000  # Maximum number of posts per page
+    
 class PostViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -191,9 +161,10 @@ class PostViewSet(
     viewsets.GenericViewSet
 ):
     serializer_class = PostSerializer  # Commented out to use default serializer class
+    pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = Post.objects.all()
+        queryset = Post.objects.all().order_by('-date_time_created')  # Order by newest first
 
         queryset = filter_blocked_objects(queryset, self.request.user)
 
@@ -215,22 +186,36 @@ class PostViewSet(
 
     @action(detail=False, methods=['GET'])
     def my_posts(self, request):
-        # Get posts of the current authenticated user
         queryset = self.get_queryset().filter(user=request.user)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+
+        # Pagination
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(queryset, request)
+
+        serializer = self.get_serializer(paginated_posts, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=['GET'], url_path='friends_posts')
 
     @action(detail=False, methods=['GET'], url_path='friends_posts')
     def friends_posts(self, request):
-        # Use the helper function to get friends of the current authenticated user
+        # Fetch friends of the user
         friends = get_user_friends(request.user)
 
-        # Get posts created by friends of the current authenticated user
+        # Filter posts to include only those made by friends
         posts = self.get_queryset().filter(user__in=friends)
+
+        # Apply infinite scroll pagination
+        paginator = CustomPagination()
+        paginated_posts = paginator.paginate_queryset(posts, request)
+
+        if paginated_posts is not None:
+            serializer = self.get_serializer(paginated_posts, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['GET'], url_path='likes')
     def post_likes(self, request, pk=None):
         post = self.get_object()
@@ -238,11 +223,13 @@ class PostViewSet(
         likes = filter_blocked_objects(likes, self.request.user)
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
-    
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context.update({"request": self.request})
         return context
+
+
 
 
 class LikeViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin):
@@ -301,10 +288,6 @@ class CommentViewSet(
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]  # Ensure the user is authenticated
 
-    # This prepares us for different serializers
-    # List serializer is like first 50 characters
-    # Retrieve serializer is full comment
-    # TODO:
     serializer_classes = {
         'list': CommentSerializer,
         'create': CommentSerializer,
@@ -320,8 +303,6 @@ class CommentViewSet(
         )
 
     def get_queryset(self):
-        # I would use the super, but this is fine
-        # If you ever want to change the object of this viewset, you would have to change it in two places
         queryset = Comment.objects.all()
         queryset = filter_blocked_objects(queryset, self.request.user)
         return queryset
@@ -360,6 +341,7 @@ class CommentViewSet(
 
         serializer = self.get_serializer(comments, many=True)
         return Response(serializer.data)
+    
     def create(self, request, *args, **kwargs):
         # Ensure the user is not blocked or blocking the owner of the post they are commenting on
         post_id = request.data.get('post')
@@ -369,15 +351,10 @@ class CommentViewSet(
         if Block.objects.filter(blocker=request.user, blocked=post_owner).exists() or Block.objects.filter(blocker=post_owner, blocked=request.user).exists():
             return Response({'error': 'You cannot comment on this post'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Associate the comment with the currently authenticated user
-        # This can be done in the serialzier, but this is fine
-        # The better way is to use the serializer, but this works
         request.data['user'] = request.user.id
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        # Associate the comment with the currently authenticated user
-        # TODO: I would do this in the serializer, but this is fine
         serializer.save(user=self.request.user)
 
 class FriendRequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):

@@ -1,9 +1,7 @@
-<!-- CommentModal.vue -->
 <template>
-  <div class="modal">
-    <div class="modal-content">
-      <span class="close" @click="$emit('close')">&times;</span>
-      <h2>{{ post.username }}'s Post</h2>
+  <BaseModal :show-modal="true" @close="handleClose">
+    <template v-slot:title>{{ post.username }}'s Post</template>
+    <div class="modal-body">
       <div v-if="comments.length">
         <ul class="comments-list">
           <li
@@ -17,11 +15,11 @@
             <div class="comment-content">
               <div class="comment-meta">
                 <span class="comment-username">{{ comment.username }}</span>
+                <span class="comment-date">{{
+                  formatDate(comment.date_time_created)
+                }}</span>
               </div>
               <p class="comment-text">{{ comment.text }}</p>
-              <span class="comment-date">{{
-                formatDate(comment.date_time_created)
-              }}</span>
             </div>
           </li>
         </ul>
@@ -30,15 +28,23 @@
         <p>No comments to display.</p>
       </div>
     </div>
-  </div>
+  </BaseModal>
 </template>
 
 <script>
-import axios from "axios";
+import BaseModal from "./BaseModal.vue";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
+import { formatDate } from "@/api/formatDateHelpers";
 
 export default {
+  components: {
+    BaseModal,
+  },
   props: {
-    post: Object,
+    post: {
+      type: Object,
+      required: true,
+    },
   },
   data() {
     return {
@@ -51,66 +57,24 @@ export default {
   methods: {
     async fetchAllComments() {
       try {
-        const token = this.$store.getters.getAuthToken;
-        const config = {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        };
-
-        const response = await axios.get(
-          `http://127.0.0.1:8000/api/comments/?post_id=${this.post.id}`,
-          config
+        const response = await axiosInstance.get(
+          `${endpoints.comments}?post_id=${this.post.id}`
         );
-
         this.comments = response.data;
+        console.log("Fetched comments:", this.comments); // Check console for fetched comments
       } catch (error) {
         console.error(
-          `Error fetching all comments for post ${this.post.id}:`,
+          `Error fetching comments for post ${this.post.id}:`,
           error
         );
-        this.comments = [];
+        this.comments = []; // Handle error by setting comments to empty array
       }
     },
-    formatDate(date) {
-      const options = {
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      };
-      const formattedDate = new Date(date);
-      const year = formattedDate.getFullYear();
-
-      if (year === 2024) {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      } else {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      }
+    handleClose() {
+      console.log("Close event received in CommentModal");
+      this.$emit("close"); // Emit close event to parent
     },
+    formatDate,
   },
 };
 </script>

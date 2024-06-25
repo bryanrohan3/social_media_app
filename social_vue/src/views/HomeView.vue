@@ -1,8 +1,14 @@
 <template>
-  <div>
-    <NavBar />
-    <div class="content">
-      <Post :posts="posts" :post-comment="postComment" />
+  <div class="page-container" @scroll="handleScroll">
+    <div class="content" ref="content">
+      <Post
+        :posts="posts"
+        :post-comment="postComment"
+        :toggle-like="toggleLike"
+        :view-more-comments="viewMoreComments"
+      />
+      <div v-if="loading" class="loading">Loading...</div>
+      <div v-if="!hasMore" class="end-of-feed">Bottom of feed</div>
     </div>
     <a
       href="/#"
@@ -26,7 +32,7 @@
 import { mapGetters } from "vuex";
 import NavBar from "@/components/NavBar.vue";
 import Post from "@/components/Post.vue";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   components: {
@@ -35,7 +41,10 @@ export default {
   },
   data() {
     return {
-      posts: [], // Initialize posts array
+      posts: [],
+      loading: false,
+      page: 1,
+      hasMore: true,
     };
   },
   computed: {
@@ -45,87 +54,119 @@ export default {
     },
   },
   mounted() {
-    this.fetchPosts(); // Fetch posts when the component is mounted
+    this.fetchPosts();
+    // Add scroll listener to the window
+    window.addEventListener("scroll", this.handleScroll);
+  },
+  beforeDestroy() {
+    // Remove scroll listener from the window
+    window.removeEventListener("scroll", this.handleScroll);
   },
   methods: {
     async fetchPosts() {
+      if (this.loading || !this.hasMore) return;
+      this.loading = true;
+
       try {
+        const token = this.$store.getters.getAuthToken;
+        if (!token) {
+          throw new Error("User not logged in");
+        }
+
         const response = await axiosInstance.get(
-          "http://127.0.0.1:8000/api/posts/friends_posts/"
+          `${endpoints.posts}friends_posts/?page=${this.page}`,
+          {
+            headers: {
+              Authorization: `Token ${token}`,
+            },
+          }
         );
 
-        const posts = response.data.map(async (post) => {
-          try {
-            const commentsResponse = await axiosInstance.get(
-              `http://127.0.0.1:8000/api/comments/?post_id=${post.id}&latest=true`
-            );
-            post.comments = commentsResponse.data; // Assign fetched comments to the post
-          } catch (error) {
-            console.error(
-              `Error fetching comments for post ${post.id}:`,
-              error
-            );
-            post.comments = []; // Default to an empty array on error
-          }
-          return post;
-        });
+        const newPosts = response.data.results;
 
-        this.posts = await Promise.all(posts); // Wait for all comments to be fetched
+        if (newPosts.length === 0 || response.data.next === null) {
+          this.hasMore = false;
+        }
+
+        this.posts = [...this.posts, ...newPosts];
+        this.page++;
       } catch (error) {
         console.error("Error fetching posts:", error);
+        // Handle specific error messages or show a message to the user
+      } finally {
+        this.loading = false;
       }
     },
 
+    handleScroll(event) {
+      const container = event.target;
+      const scrollHeight = container.scrollHeight;
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
+
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      const threshold = 0.1 * clientHeight;
+
+      if (distanceFromBottom <= threshold) {
+        this.fetchPosts();
+      }
+    },
     async likePost(postId) {
       try {
-        await axiosInstance.post(
-          `http://127.0.0.1:8000/api/likes/?post=${postId}`, // Include postId in the URL
-          {} // No need for a request body
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
+        await axiosInstance.post(`${endpoints.likes}?post=${postId}`);
+        this.updatePostLike(postId, true);
       } catch (error) {
         console.error("Error liking post:", error);
       }
     },
-
     async unlikePost(postId) {
       try {
-        await axiosInstance.delete(
-          `http://127.0.0.1:8000/api/unlike/?like=${postId}`
-        );
-        // Update the posts to reflect the change in likes
-        this.fetchPosts();
+        await axiosInstance.delete(`${endpoints.likes}?like=${postId}`);
+        this.updatePostLike(postId, false);
       } catch (error) {
         console.error("Error unliking post:", error);
       }
     },
-
+    updatePostLike(postId, liked) {
+      const updatedPosts = this.posts.map((post) => {
+        if (post.id === postId) {
+          post.liked = liked;
+          post.like_count += liked ? 1 : -1;
+        }
+        return post;
+      });
+      this.posts = updatedPosts;
+    },
     async postComment(postId, commentText) {
       try {
-        await axiosInstance.post("http://127.0.0.1:8000/api/comments/", {
+        const response = await axiosInstance.post(endpoints.comments, {
           post: postId,
           text: commentText,
         });
-        // Clear the comment text area after posting
-        this.commentText = "";
-        // Update the posts to reflect the new comment
-        this.fetchPosts();
-        // this.postComment(postId, commentText);
+
+        const newComment = response.data;
+        newComment.date_time_created = new Date(newComment.date_time_created);
+
+        const updatedPosts = this.posts.map((post) => {
+          if (post.id === postId) {
+            post.comments.unshift(newComment);
+          }
+          return post;
+        });
+
+        this.posts = updatedPosts;
       } catch (error) {
         console.error("Error posting comment:", error);
       }
     },
-
+    async viewMoreComments(post) {
+      console.log("View more comments for post:", post);
+    },
     async toggleLike(post) {
       try {
-        console.log("toggleLike method called");
-        // Determine whether to like or unlike the post based on its current state
         if (post.liked) {
-          // If the post is already liked, unlike it
           await this.unlikePost(post.id);
         } else {
-          // If the post is not liked, like it
           await this.likePost(post.id);
         }
       } catch (error) {
@@ -137,10 +178,23 @@ export default {
 </script>
 
 <style>
+.page-container {
+  height: 100vh;
+  overflow-y: auto;
+}
+
 .content {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto; /* Center the content */
+  padding-top: 50px;
+}
+
+.end-of-feed {
+  padding: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #b2b2b2;
 }
 
 .user-info-top-right {

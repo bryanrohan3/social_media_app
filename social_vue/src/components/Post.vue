@@ -9,10 +9,7 @@
         </div>
       </div>
       <p class="caption">{{ post.caption }}</p>
-
-      <!-- Like and Comment buttons -->
       <div class="button-wrapper">
-        <!-- Thumbs up (Like) button -->
         <svg
           @click="toggleLike(post)"
           class="like-icon"
@@ -26,7 +23,6 @@
             d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L794-168q-9 20-30 34t-44 14Zm-360-80h360l120-280v-80H480l54-220-174 174v406Zm0-406v406-406Zm-80-34v80H160v360h120v80H80v-520h200Z"
           />
         </svg>
-        <!-- Comment button -->
         <svg
           @click="openComment(post)"
           class="comment-icon"
@@ -44,9 +40,8 @@
 
       <div class="border-bottom-divider"></div>
 
-      <!-- Comment section -->
       <div class="comment-section">
-        <div v-if="post.comments && post.comments.length" class="comments">
+        <div v-if="post.comments && post.comments.length > 0" class="comments">
           <button class="viewMoreComments" @click="viewMoreComments(post)">
             View more comments
           </button>
@@ -80,7 +75,6 @@
             placeholder="Write a comment..."
             :id="'comment-input-' + post.id"
           ></textarea>
-          <!-- SVG icon for sending comment -->
           <svg
             v-if="post.commentText"
             @click="postComment(post.id, post.commentText)"
@@ -107,10 +101,10 @@
 </template>
 
 <script>
-// import axios from "axios";
 import CommentModal from "./CommentModal.vue";
 import { mapGetters } from "vuex";
-import axiosInstance from "@/api/axiosHelper"; // Import Axios instance
+import { axiosInstance, endpoints } from "@/api/axiosHelper"; // Import Axios instance and endpoints
+import { formatDate } from "@/api/formatDateHelpers"; // Import the formatDate function
 
 export default {
   components: {
@@ -119,21 +113,18 @@ export default {
   computed: {
     ...mapGetters(["getAuthToken"]),
     sortedPosts() {
-      return this.posts
-        .slice()
-        .sort(
-          (a, b) =>
-            new Date(b.date_time_created) - new Date(a.date_time_created)
-        );
+      // Return posts as they are received from the backend
+      return this.posts || [];
     },
   },
+
   created() {
     this.postsData = this.sortPosts(this.posts);
   },
   props: {
     posts: {
       type: Array,
-      required: true,
+      default: () => [],
     },
     postComment: {
       type: Function,
@@ -152,6 +143,7 @@ export default {
       this.selectedPost = post;
       this.isModalOpen = true;
     },
+    formatDate,
     sortPosts(posts) {
       return posts
         .slice()
@@ -178,55 +170,12 @@ export default {
       }
     },
 
-    formatDate(date) {
-      const options = {
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      };
-      const formattedDate = new Date(date);
-      const year = formattedDate.getFullYear();
-
-      if (year === 2024) {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      } else {
-        return (
-          formattedDate.toLocaleString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          }) +
-          " at " +
-          formattedDate.toLocaleString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          })
-        );
-      }
-    },
     async toggleLike(post) {
-      console.log("Toggling like for post:", post);
       if (post.liked) {
         // Unlike the post
         try {
           if (post.like_id) {
-            console.log("Unliking post with like_id:", post.like_id);
-            await axiosInstance.delete(
-              `http://127.0.0.1:8000/api/unlike/?like=${post.like_id}`
-            );
+            await axiosInstance.delete(`${endpoints.unlike}${post.like_id}`);
             post.liked = false;
             post.like_id = null;
           } else {
@@ -238,14 +187,9 @@ export default {
       } else {
         // Like the post
         try {
-          console.log("Liking post:", post.id);
-          const response = await axiosInstance.post(
-            "http://127.0.0.1:8000/api/likes/",
-            {
-              post: post.id,
-            }
-          );
-          console.log("Post liked successfully:", response.data);
+          const response = await axiosInstance.post(endpoints.likes, {
+            post: post.id,
+          });
           post.liked = true;
           post.like_id = response.data.id; // Ensure this matches the backend response structure
         } catch (error) {
@@ -450,7 +394,7 @@ textarea:active {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-left: 200px;
+  margin-left: 100px;
   z-index: 1; /* Ensure the post container is below the modal */
 }
 

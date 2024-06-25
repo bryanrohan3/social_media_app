@@ -10,14 +10,13 @@
 
       <div class="form-group password-input-container">
         <label for="password"><b>Password</b></label>
-        <!-- <div class="password-input-container"> -->
         <input
           v-model="password"
           :type="showPassword ? 'text' : 'password'"
           id="password"
           required
         />
-        <span class="toggle-password" @click="togglePassword">
+        <span class="toggle-password" @click="showPassword = !showPassword">
           <svg
             v-if="showPassword"
             xmlns="http://www.w3.org/2000/svg"
@@ -53,7 +52,6 @@
       <button type="submit">Sign in</button>
     </form>
     <p v-if="errorMessage">{{ errorMessage }}</p>
-    <!-- <p>Don't have an account yet? <a href="/signup">Sign up</a></p> -->
     <p class="signup-link-p">
       Don't have an account yet?
       <a href="/signup" class="signup-link">Sign up</a>
@@ -64,6 +62,7 @@
 <script>
 import axios from "axios";
 import { mapMutations } from "vuex";
+import { axiosInstance, endpoints } from "@/api/axiosHelper";
 
 export default {
   name: "LogInPage",
@@ -78,23 +77,16 @@ export default {
   methods: {
     async handleLogin() {
       try {
-        const response = await axios.post(
-          "http://localhost:8000/api/users/login/",
-          {
-            username: this.username,
-            password: this.password,
-          }
-        );
-
-        // Log the entire response object
-        console.log("Response object:", response);
+        const response = await axiosInstance.post(endpoints.login, {
+          username: this.username,
+          password: this.password,
+        });
 
         if (response.data) {
           const token = response.data.token;
           const user = response.data.user;
 
-          console.log("Logged in user:", user.username);
-          console.log("Authentication token:", token);
+          console.log("Token received:", token); // Log token received
 
           // Store token and user in Vuex
           this.setAuthToken(token);
@@ -112,9 +104,7 @@ export default {
           error.response?.data?.error || "Invalid username or password";
       }
     },
-    togglePassword() {
-      this.showPassword = !this.showPassword;
-    },
+
     ...mapMutations(["setAuthToken", "setUserProfile"]),
   },
 };
@@ -123,12 +113,10 @@ export default {
 <style>
 html,
 body {
-  height: 100%;
+  height: 80vh;
   margin: 0;
   padding: 0;
-  background-color: #f9f9fd;
-  background-image: radial-gradient(#e9e9e5 1.85px, transparent 1.85px),
-    radial-gradient(#e9e9e5 1.85px, #f9f9fd 1.85px);
+  background-color: #ffffff;
   background-size: 74px 74px;
   background-position: 0 0, 37px 37px;
 }
@@ -140,6 +128,7 @@ body {
   background-color: #fff;
   border-radius: 20px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin-top: 100px;
 }
 
 .forgot-password-link {
