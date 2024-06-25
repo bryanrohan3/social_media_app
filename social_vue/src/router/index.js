@@ -1,50 +1,65 @@
+// index.js
 import { createRouter, createWebHistory } from "vue-router";
+import MainLayout from "@/components/Layouts/MainLayout.vue";
+import AnonLayout from "@/components/Layouts/AnonLayout.vue";
 import HomeView from "../views/HomeView.vue";
+import AboutView from "../views/AboutView.vue";
+import SignUpPage from "../views/SignUpPage/SignUpPage.vue";
+import LogInPage from "../views/LogInPage/LogInPage.vue";
+import ProfilePage from "../views/ProfilePage/ProfilePage.vue";
+import EditProfilePage from "../views/EditProfilePage/EditProfilePage.vue";
+import FriendRequestsPage from "../views/FriendRequestsPage/FriendRequestsPage.vue";
 
 const routes = [
   {
     path: "/",
-    name: "home",
-    component: HomeView,
+    component: MainLayout,
+    children: [
+      {
+        path: "",
+        name: "home",
+        component: HomeView,
+      },
+      {
+        path: "about",
+        name: "about",
+        component: AboutView,
+      },
+      {
+        path: "profile/:id",
+        name: "profile",
+        component: ProfilePage,
+        props: true,
+      },
+      {
+        path: "/profile/:id/edit",
+        name: "editProfile",
+        component: EditProfilePage,
+        props: true,
+      },
+      {
+        path: "friend-requests",
+        name: "friendrequests",
+        component: FriendRequestsPage,
+      },
+    ],
   },
   {
-    path: "/about",
-    name: "about",
-    component: () => import("../views/AboutView.vue"),
+    path: "/",
+    component: AnonLayout,
+    children: [
+      {
+        path: "signup",
+        name: "signup",
+        component: SignUpPage,
+      },
+      {
+        path: "login",
+        name: "login",
+        component: LogInPage,
+      },
+    ],
   },
-  {
-    path: "/signup",
-    name: "signup",
-    component: () => import("../views/SignUpPage/SignUpPage.vue"),
-  },
-  {
-    path: "/login",
-    name: "login",
-    component: () => import("../views/LogInPage/LogInPage.vue"),
-  },
-  {
-    path: "/myprofile",
-    name: "myprofile",
-    component: () => import("../views/MyProfilePage/MyProfilePage.vue"),
-  },
-  {
-    path: "/profile/:id",
-    name: "profile",
-    component: () => import("../views/ProfilePage/ProfilePage.vue"),
-    props: true,
-  },
-  {
-    path: "/myprofile/edit",
-    name: "editprofile",
-    component: () => import("../views/EditProfilePage/EditProfilePage.vue"),
-  },
-  {
-    path: "/friend-requests",
-    name: "friendrequests",
-    component: () =>
-      import("../views/FriendRequestsPage/FriendRequestsPage.vue"),
-  },
-  // Catch-all route for undefined routes
   {
     path: "/:catchAll(.*)",
     redirect: { name: "home" },
